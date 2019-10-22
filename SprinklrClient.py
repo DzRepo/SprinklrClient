@@ -188,10 +188,6 @@ class Sprinklr:
 
         logging.info("Posting to URL:" + request_url)
 
-        # print("Headers:", json.dumps(headers, indent=4))
-        # print("Data:", json.dumps(data, indent=4))
-        # print("URL:", request_url)
-
         try:
             response = requests.post(url=request_url, headers=headers, data=json.dumps(data))
         except ConnectionError:
@@ -420,7 +416,7 @@ class Sprinklr:
             request_data["sortKey"] = sort_key
 
         if echo_request is not None:
-            request_data["echo_request"] = echo_request
+            request_data["echoRequest"] = echo_request
 
         # Comma delimit format values = {strip_html, text strip_url, include_original}
         # strip_html - Strip html from the message text
