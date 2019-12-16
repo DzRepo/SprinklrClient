@@ -10,7 +10,7 @@ A simple Python client for interacting with Sprinklr's REST API
 
 Current Supported Functions via the client:
 
-<!-- SprinklrClientTest Authorize {apikey} {redirect_uri}
+SprinklrClientTest Authorize {apikey} {redirect_uri}
                    AssetSearch [One | Two | Three]
                    CreateCase
                    GetAccessToken {apikey} {secret} {code} {redirect uri}
@@ -47,7 +47,7 @@ Current Supported Functions via the client:
                    GetUserById {User_Id}
                    GetUserGroups
                    GetWebhookTypes
-                   RefreshAccessToken -->
+                   RefreshAccessToken
 
 Please let me know if you are using this library and send feedback to SteveDz@Sprinklr.com - Thanks!
 
