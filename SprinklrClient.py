@@ -2,122 +2,12 @@ import requests
 import json
 import urllib.parse
 import logging
+from SprinklrCase import CaseCreate, CaseUpdate
+from SprinklrReport import ReportBuilder
 
 HTTP_OK = 200
 
-
-class ReportBuilder:
-    def __init__(self):
-        self.engine = None
-        self.name = None
-        self.page = 0
-        self.start_time = None  # Unix time in ms
-        self.end_time = None    # Unix time in ms
-        self.time_zone = None   # UTC is default
-        self.page_size = 10     # Rows to be returned per call - default is 10, max is 2000
-        self.page = 0           # page to request - default is 0 (first)
-        self.projections = []
-        self.group_bys = []
-        self.group_by_projections = []
-        self.group_by_sorts = []
-        self.group_by_filters = []
-        self.columns = []
-        self.request = None
-        self.filters = []
-        self.projection_decorations = []
-        self.last_error = None
-
-    def set_engine(self, engine_name):
-        if engine_name.upper() in {"AD", "PLATFORM", "INBOUND_MESSAGE", "LISTENING"}:
-            self.engine = engine_name.upper()
-            return True
-        else:
-            return False
-
-    def set_name(self, name):
-        self.name = name
-        return True
-
-    def set_page(self, page):
-        if page > 0:
-            self.page = page
-            return True
-        else:
-            self.page = 0
-            return False
-
-    def set_start_time(self, start_time):
-        self.start_time = start_time
-        return True
-
-    def set_end_time(self, end_time):
-        self.end_time = end_time
-        return True
-
-    def set_time_zone(self, time_zone):
-        self.time_zone = time_zone
-        return True
-
-    def set_page_size(self, page_size):
-        self.page_size = page_size
-        return True
-
-    # {"heading": "HIERARCHY_PATH", "dimensionName": "HIERARCHY_PATH", "groupType": "FIELD", "details": {}
-    # Valid group_types: DATE_HISTOGRAM, TIME_OF_DAY, DAY_OF_WEEK, MONTH_OF_YEAR, FIELD
-
-    def add_group_by(self, heading, dimension_name, group_type, details=None):
-        self.group_bys.append({
-            "heading": heading,
-            "dimensionName": dimension_name,
-            "groupType": group_type,
-            "details": details,
-            })
-
-
-    # {"filterType": "IN", "dimensionName": "HIERARCHY_ID", "values": ["5c3db128e4b0dcecf6fa1c73"], "details": {}}
-    # based on report_engine, different filter_types are valid.
-    # for PLATFORM and INBOUND_MESSAGE, the following are valid:
-    #    IN, GT, GTE, LT, LTE, NIN, BETWEEN, STARTS_WITH, CONTAINS, EQUALS , FILTER, EXISTS
-    def add_filter(self, filter_type, dimension_name, values, details=None):
-        self.filters.append({
-            "filterType": filter_type,
-            "dimensionName": dimension_name,
-            "values": values,
-            "details": details
-        })
-
-    # {"heading": "MENTIONS_COUNT", "measurementName": "MENTIONS_COUNT", "aggregateFunction": "SUM" }
-    # Valid aggregate_function parameters: SUM, AVG, MIN, MAX, STATS
-    def add_column(self, heading, measurement_name, aggregate_function, details=None):
-        self.columns.append({
-            "heading": heading,
-            "measurementName": measurement_name,
-            "aggregateFunction": aggregate_function,
-            "details": details
-        })
-    
-    def build_request(self):
-        try:
-            self.request = {
-                "reportingEngine": self.engine,
-                "report": self.name,
-                "startTime": self.start_time,
-                "endTime": self.end_time,
-                "timeZone": self.time_zone,
-                "page": self.page,
-                "pageSize": self.page_size,
-                "groupBys": self.group_bys,
-                "filters": self.filters,
-                "projections": self.columns,
-                }
-        except ValueError as ex:
-            self.last_error = ex
-            return False
-
-        return True
-
-
-class Sprinklr:
+class SprinklrClient:
     """Sprinklr Client Library"""
 
     def __init__(self, key, path=None, access_token=None):
@@ -141,39 +31,9 @@ class Sprinklr:
                 self.path = path + "/"
         else:
             self.path = ""
-        logging.info("Client initialized. Path is " + self.path)
-
-    def get_access_token(self, secret="", redirect_uri='', code=""):
-        """
-                Get Access Token based on code returned via authorization process
-                :return: Dictionary of Dashboard columns
-                """
-        request_url = (f'https://api2.sprinklr.com/{self.path}oauth/token?'
-                       f'client_id={self.key}&'
-                       f'client_secret={secret}&'
-                       f'redirect_uri={redirect_uri}&'
-                       f'grant_type=authorization_code&'
-                       f'code={code}')
-
-        headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-
-        response = requests.post(url=request_url, headers=headers)
-
-        self.status_code = response.status_code
-
-        if response.status_code == HTTP_OK:
-            self.encoding = response.encoding
-            j_result = json.loads(response.content)
-            self.access_token = j_result["access_token"]
-            self.token_type = j_result["token_type"]
-            self.refresh_token = j_result["refresh_token"]
-        else:
-            if response.content is not None:
-                self.result = response.content
-
-        return response.status_code == HTTP_OK
-
-    def post_request(self, request_url: str, data: object):
+        logging.info("Client initialized. Path is |" + self.path + "|")
+        
+    def delete_request(self, request_url: str, data = None):
         """
 
         :rtype: object
@@ -189,16 +49,19 @@ class Sprinklr:
         logging.info("Posting to URL:" + request_url)
 
         try:
-            response = requests.post(url=request_url, headers=headers, data=json.dumps(data))
+            response = requests.delete(url=request_url, headers=headers, data=json.dumps(data))
         except ConnectionError:
+            logging.error("Connection Error:" + request_url)
             self.status_message = "Connection Error"
             self.status_code = -1
             logging.exception(self.status_message, request_url)
         except TimeoutError:
+            logging.error("Timeout Error:" + request_url)
             self.status_message = "Timeout Error"
             self.status_code = -1
             logging.exception(self.status_message, request_url)
         except requests.exceptions.RequestException:
+            logging.error("Reqeust Error:" + request_url)
             self.status_message = "Request Error"
             self.status_code = -1
             logging.exception(self.status_message, request_url)
@@ -208,26 +71,40 @@ class Sprinklr:
             self.raw = response.text
             self.result = json.loads(response.text)
 
+        if self.status_code != HTTP_OK:
+            logging.error('delete_request:' + response.text)
+
         return self.status_code == HTTP_OK
 
-    def get_request(self, request_url):
-        headers = {'key': self.key,
-                   'Authorization': "Bearer " + self.access_token}
+
+    def put_request(self, request_url: str, data = None):
+        """
+        :rtype: object
+        """
 
         response = None
 
-        logging.info("Requesting URL:" + request_url)
+        headers = {'key': self.key,
+                   'Authorization': "Bearer " + self.access_token,
+                   'Content-Type': 'application/json',
+                   'cache-control': 'no-cache'}
+
+        logging.info("Posting to URL:" + request_url)
+
         try:
-            response = requests.get(url=request_url, headers=headers)
+            response = requests.put(url=request_url, headers=headers, data=json.dumps(data))
         except ConnectionError:
+            logging.error("Connection Error:" + request_url)
             self.status_message = "Connection Error"
             self.status_code = -1
             logging.exception(self.status_message, request_url)
         except TimeoutError:
+            logging.error("Timeout Error:" + request_url)
             self.status_message = "Timeout Error"
             self.status_code = -1
             logging.exception(self.status_message, request_url)
         except requests.exceptions.RequestException:
+            logging.error("Reqeust Error:" + request_url)
             self.status_message = "Request Error"
             self.status_code = -1
             logging.exception(self.status_message, request_url)
@@ -237,55 +114,290 @@ class Sprinklr:
             self.raw = response.text
             self.result = json.loads(response.text)
 
+        if self.status_code != HTTP_OK:
+            logging.error('put_request:' + response.text)
+
         return self.status_code == HTTP_OK
+
+    def post_request(self, request_url: str, data: object):
+        """
+
+        :rtype: object
+        """
+
+        response = None
+
+        headers = {'key': self.key,
+                   'Authorization': "Bearer " + self.access_token,
+                   'Content-Type': 'application/json',
+                   'cache-control': 'no-cache'}
+
+        logging.info("Posting to URL:" + request_url)
+        logging.debug("Data Being Posted:" + str(data))
+
+        try:
+            response = requests.post(url=request_url, headers=headers, data=json.dumps(data))
+        except ConnectionError:
+            logging.error("Connection Error:" + request_url)
+            self.status_message = "Connection Error"
+            self.status_code = -1
+            logging.exception(self.status_message, request_url)
+        except TimeoutError:
+            logging.error("Timeout Error:" + request_url)
+            self.status_message = "Timeout Error"
+            self.status_code = -1
+            logging.exception(self.status_message, request_url)
+        except requests.exceptions.RequestException:
+            logging.error("Reqeust Error:" + request_url)
+            self.status_message = "Request Error"
+            self.status_code = -1
+            logging.exception(self.status_message, request_url)
+
+        if response is not None:
+            self.status_code = response.status_code
+            self.raw = response.text
+            self.result = json.loads(response.text)
+
+        if self.status_code != HTTP_OK:
+            logging.error('post_request:' + response.text)
+
+        return self.status_code == HTTP_OK
+
+    def get_request(self, request_url, returns_json=False):
+        headers = {'key': self.key,
+                   'Authorization': "Bearer " + self.access_token}
+
+        if returns_json:
+            headers['accept'] = 'application/json'
+
+        response = None
+
+        logging.debug("Requesting URL:" + request_url)
+        try:
+            response = requests.get(url=request_url, headers=headers)
+            logging.debug("response code:" + str(response.status_code))
+        except ConnectionError:
+            logging.error("Connection Error:" + request_url)
+            self.status_message = "Connection Error"
+            self.status_code = -1
+            logging.exception(self.status_message, request_url)
+        except TimeoutError:
+            logging.error("Timeout Error:" + request_url)
+            self.status_message = "Timeout Error"
+            self.status_code = -1
+            logging.exception(self.status_message, request_url)
+        except requests.exceptions.RequestException:
+            logging.error("Reqeust Error:" + request_url)
+            self.status_message = "Request Error"
+            self.status_code = -1
+            logging.exception(self.status_message, request_url)
+
+        if response is not None:
+            self.status_code = response.status_code
+            self.raw = response.text
+            try:
+                self.result = json.loads(response.text)
+            except Exception:
+                self.result = response.text
+
+        if self.status_code != HTTP_OK:
+            logging.error('get_request:' + response.text)
+            self.status_message = response.text
+
+        return self.status_code == HTTP_OK
+
+    # this endpoint only returns the URL used to start the authorization process. It does not invoke the web-browser required workflow.
+    def authorize(self, api_key, redirect_uri):
+        request_url = f'https://api2.sprinklr.com/{self.path}oauth/authorize?client_id={api_key}&response_type=code&redirect_uri={redirect_uri}'
+        return request_url
+
+    # using the secret key and 'code' returned from the authoize process, retrieve the access and refresh tokens        
+    def get_access_token(self, secret="", redirect_uri='', code=""):
+            """
+                    Get Access Token based on code returned via authorization process
+                    :return: Dictionary of Dashboard columns
+                    """
+            logging.info("Calling get_access_token")
+            request_url = (f'https://api2.sprinklr.com/{self.path}oauth/token?'
+                        f'client_id={self.key}&'
+                        f'client_secret={secret}&'
+                        f'redirect_uri={redirect_uri}&'
+                        f'grant_type=authorization_code&'
+                        f'code={code}')
+
+            headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+            response = requests.post(url=request_url, headers=headers)
+
+            self.raw = response
+
+            self.status_code = response.status_code
+
+            if response.status_code == HTTP_OK:
+                self.encoding = response.encoding
+                j_result = json.loads(response.content)
+                self.access_token = j_result["access_token"]
+                self.token_type = j_result["token_type"]
+                self.refresh_token = j_result["refresh_token"]
+            else:
+                logging.error("get_access_code - url:" + request_url)
+                if response.content is not None:
+                    self.result = response.content
+
+            return response.status_code == HTTP_OK
+
+    def refresh_access_token(self, api_key, secret, redirect_uri, refresh_token):
+        logging.info("Calling refresh_access_token")
+        request_url = f'https://api2.sprinklr.com/{self.path}oauth/token?client_id={api_key}&client_secret={secret}&redirect_uri={redirect_uri}&grant_type=refresh_token&refresh_token={refresh_token}'
+        headers = {'Content-Type': 'Application/x-www-form-urlencoded'}
+        response = requests.post(url=request_url, headers=headers)
+        
+        self.status_code = response.status_code
+
+        if response.status_code == HTTP_OK:
+            self.encoding = response.encoding
+            j_result = json.loads(response.content)
+            self.access_token = j_result["access_token"]
+            self.token_type = j_result["token_type"]
+            self.refresh_token = j_result["refresh_token"]
+        else:
+            if response.content is not None:
+                self.result = response.content
+
+        return response.status_code == HTTP_OK
 
     def report_query(self, data):
         request_url = f' https://api2.sprinklr.com/{self.path}api/v1/reports/query'
         self.post_request(request_url, data)
         return self.status_code == HTTP_OK
 
-    # def create_case(self, workflow, attachment, case_id = None,
-    #                case_number = None, subject = None, description = None,
-    #                 version = None, status = None, priority = None, case_type = None, external_case = None,
-    #                 contact = None, due_date = None, summary = None, created_time = None, modified_time = None,
-    #                 first_message_id = None):
-    #
-    #       request_url = f'https://api2.sprinklr.com/{self.path}api/v2/case'
-    # def get_case_by_number(self, case_number):
-    #     request_url = f'https://api2.sprinklr.com/{self.path}api/v2/case/case-numbers'
-    #
-    # def get_case_by_channel_case_id(self):
-    #     request_url = f'https://api2.sprinklr.com/{self.path}api/v2/case/channel-case-ids'
-    #
-    # def get_case_by_channel_case_number(self):
-    #     request_url = f'https://api2.sprinklr.com/{self.path}api/v2/case/channel-case-numbers'
-    #
-    # def get_case_by_case_id(self, case_id):
-    #     request_url = f'https://api2.sprinklr.com/{self.path}api/v2/case/{case_id}'
-    #
-    # def delete_case(self, case_id_or_number):
-    #     request_url = f'https://api2.sprinklr.com/{self.path}api/v2/case'
-    #
-    # def asset_upload(self, content_type, upload_tracker_id, file_name):
-    #     ßßrequest_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/upload'
-    #
-    # def asset_create(self):
-    #     request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam'
-    #
-    # def asset_search(self):
-    #     request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/search'
-    #
-    # def asset_read(self, asset_id):
-    #     request_url = f'https://api2.sprinklr.com/{self.path}/api/v1/sam/[asset_id]'
-    #
-    # def asset_import(self, import_type, url, upload_tracker_id):
-    #     request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/importUrl'
-    #
-    # def asset_update(self, asset_id, name, description, asset_status, expiry_time):
-    #     request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/{asset_id}'
-    #
-    # def asset_delete(self, asset_id):
-    #     request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/{asset_id}'
+    def create_case_v2(self, case: CaseCreate):
+    
+            request_url = f'https://api2.sprinklr.com/{self.path}api/v2/case'
+
+            case.build_create_request()
+
+            #print(case.request)           
+            print(json.dumps(case.request))
+
+            '''
+            response = self.post_request(request_url, request)
+
+            self.status_code = response.status_code
+
+            if response.status_code == HTTP_OK:
+                self.encoding = response.encoding
+                j_result = json.loads(response.content)
+                self.result = j_result
+            else:
+                if response.content is not None:
+                    self.result = response.content
+
+            return response.status_code == HTTP_OK
+            '''
+
+    def get_case_by_number(self, case_number):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/case/case-numbers?case-number={case_number}'
+        return self.get_request(request_url, returns_json=True)
+
+    def get_case_by_channel_case_id(self, channel_case_id):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/case/channel-case-ids?channelCaseIds={channel_case_id}'
+        return self.get_request(request_url, returns_json=True)
+
+    def get_case_by_channel_case_number(self, chanel_case_number):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/case/channel-case-numbers?channelCaseNumbers={chanel_case_number}'
+        return self.get_request(request_url, returns_json=True)
+    
+    def get_case_by_case_id(self, case_id):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/case/{case_id}'
+        return self.get_request(request_url, returns_json=True)
+
+    def get_case_associated_messages(self, case_id):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/case/associated-messages?id={case_id}'
+        return self.get_request(request_url, returns_json=True)
+
+    def delete_case(self, case_id):
+        delete_url = f'https://api2.sprinklr.com/{self.path}api/v2/case'
+    
+        data = { case_id }
+        return self.delete_request(delete_url, data)
+
+    def update_case(self, case_id : int, case : CaseUpdate):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/case'
+        
+        
+        response = self.put_request(request_url, case)
+
+        self.status_code = response.status_code
+
+        if response.status_code == HTTP_OK:
+            self.encoding = response.encoding
+            j_result = json.loads(response.content)
+            self.result = j_result
+        else:
+            if response.content is not None:
+                self.result = response.content
+
+        return response.status_code == HTTP_OK
+
+
+    # TODO: File upload - may nead to alter post to or pull in single instance version    
+    def asset_upload(self, content_type, upload_tracker_id, file_name):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/upload?contentType={content_type}&uploadTrackerId={upload_tracker_id}'
+        data = {}
+        return self.post_request(request_url, data)
+
+    def asset_create(self):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam'
+        data = {}
+        return self.post_request(request_url, data)
+    
+    def asset_search(self, filters, sort_list, keyword_search, range_condition, only_available=False, start=0, rows=20):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/search'
+        request = {
+            "filters":filters,
+            "sortList":sort_list,
+            "keywordSearch":keyword_search,
+            "rangeCondition":keyword_search,
+            "onlyAvailable":only_available,
+            "start":start,
+            "rows":rows
+        }
+        response = requests.post(request_url, data=request)
+        self.status_code = response.status_code
+
+        if response.status_code == HTTP_OK:
+            self.encoding = response.encoding
+            j_result = json.loads(response.content)
+            self.access_token = j_result["access_token"]
+            self.token_type = j_result["token_type"]
+            self.refresh_token = j_result["refresh_token"]
+        else:
+            if response.content is not None:
+                self.result = response.content
+
+        return response.status_code == HTTP_OK
+    
+    def asset_read(self, asset_id):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/{asset_id}'
+        return self.get_request(request_url, returns_json=True)
+    
+    def asset_import(self, import_type, url, upload_tracker_id):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/importUrl?importType={import_type}&url={url}&uploadTrackerId={upload_tracker_id}'
+        return self.post_request(request_url, None)
+
+    def asset_update(self, asset_id, name, description, asset_status, expiry_time):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/{asset_id}'
+        data = {}
+        return self.put_request(request_url, data)
+    
+    def asset_delete(self, asset_id):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/{asset_id}'
+        return self.delete_request(request_url, None)
+
+
+    def get_message_by_id_and_source(self, message_id, source_type):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/message?id={message_id}&sourceType={source_type}'
+        return self.get_request(request_url, returns_json=True)
 
     def get_listening_insight_volume_trend(self, since_time, until_time,
                                            metric="MENTIONS", timezone_offset=0,
@@ -314,10 +426,8 @@ class Sprinklr:
         :return: Dictionary of Engagement Dashboard
         """
         request_url = f'https://api2.sprinklr.com/{self.path}api/v1/dashboards'
-
-        self.get_request(request_url)
-        return self.status_code == HTTP_OK
-
+        return self.get_request(request_url)
+        
     def request_dashboard_by_name(self, dashboard_name: str):
         """
         request dashboard data by name
@@ -353,6 +463,8 @@ class Sprinklr:
         :return: Dictionary of listening topics
         """
         request_url = f'https://api2.sprinklr.com/{self.path}api/v1/listening/topics'
+
+        logging.info("Calling get_listening_topics")
 
         self.get_request(request_url)
         return self.status_code == HTTP_OK
@@ -436,6 +548,75 @@ class Sprinklr:
         self.get_request(request_url)
         return self.status_code == HTTP_OK
 
+    def get_macros(self):
+        return self.get_resources('MACROS')
+
+    def get_user_groups(self):
+        return self.get_resources('USER_GROUPS')
+
+    def get_permissions(self):
+        return self.get_resources('PERMISSIONS')
+
+    def get_client_profile_lists(self):
+        return self.get_resources('CLIENT_PROFILE_LISTS')
+
+    def get_partner_profile_lists(self):
+        return self.get_resources('PARTNER_PROFILE_LISTS')
+
+    def get_client_queues(self):
+        return self.get_resources('CLIENT_QUEUES')
+
+    def get_partner_queues(self):
+        return self.get_resources('PARTNER_QUEUES')
+
+    def get_approval_paths(self):
+        return self.get_resources('APPROVAL_PATHS')
+
+    def get_accessible_users(self):
+        return self.get_resources('ACCESSIBLE_USERS')
+
+    def get_um_priorities(self):
+        return self.get_resources('UM_PRIORITIES')
+
+    def get_um_statuses(self):
+        return self.get_resources('UM_STATUSES')
+
+    def get_account_custom_fields(self):
+        return self.get_resources('ACCOUNT_CUSTOM_FIELDS')
+
+    def get_media_asset_custom_fields(self):
+        return self.get_resources('MEDIA_ASSET_CUSTOM_FIELDS')
+
+    def get_profile_custom_fields(self):
+        return self.get_resources('PROFILE_CUSTOM_FIELDS')
+
+    def get_outbound_custom_fields(self):
+        return self.get_resources('OUTBOUND_CUSTOM_FIELDS')
+
+    def get_inbound_custom_fields(self):
+        return self.get_resources('INBOUND_CUSTOM_FIELDS')
+
+    def get_client_url_shortners(self):
+        return self.get_resources('CLIENT_URL_SHORTNERS')
+
+    def get_clients(self):
+        return self.get_resources('CLIENTS')
+
+    def get_client_users(self):
+        return self.get_resources('CLIENT_USERS')
+
+    def get_partner_users(self):
+        return self.get_resources('PARTNER_USERS')
+
+    def get_partner_account_groups(self):
+        return self.get_resources('PARTNER_ACCOUNT_GROUPS')
+
+    def get_partner_campaigns(self):
+        return self.get_resources('PARTNER_CAMPAIGNS')
+
+    def get_partner_accounts(self):
+        return self.get_resources('PARTNER_ACCOUNTS')
+
     def get_report_metrics(self, report_engine, report_type):
         request_url = f"https://api2.sprinklr.com/{self.path}api/v1/reports/metadata/{report_engine}?{report_type}"
 
@@ -447,3 +628,55 @@ class Sprinklr:
         
         self.get_request(request_url)
         return self.status_code == HTTP_OK
+
+    def get_user(self):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/me'
+        
+        self.get_request(request_url)
+        return self.status_code == HTTP_OK
+
+    def get_user_by_id(self, user_id):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/scim/v2/Users/{user_id}'
+        
+        self.get_request(request_url)
+        return self.status_code == HTTP_OK
+
+    class Filter:
+        def __init__(self):
+            self.type = None
+            self.filters = []
+
+        class Filters:
+            def __init__(self):
+                self.type = None
+                self.key = None
+                self.values = []
+    
+    def search_entity(self, entity_type, filter : Filter, sort_order = 'ASC', sort_key='id', page_size = 0):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/search/{entity_type}'
+
+        request_data = \
+            {"filter": filter,
+             "sort": {
+                 "key": sort_key,
+                 "order": sort_order
+             },
+             "page": {
+                 'size': page_size
+                }
+             }
+        self.post_request(request_url, request_data)
+
+    def search_campaign(self, filter,  sort_order = 'ASC', sort_key='id', page_size = 0):
+        return self.search_entity('CAMPAIGN', filter, sort_order, sort_key, page_size)
+        
+    def search_case(self, filter,  sort_order = 'ASC', sort_key='id', page_size = 0):
+        return self.search_entity('CASE', filter, sort_order, sort_key, page_size)
+
+    def search_message(self, filter, sort_order = 'ASC', sort_key='id', page_size = 0):
+        return self.search_entity('MESSAGE', filter, sort_order, sort_key, page_size)
+
+    def search_sam(self, filter, sort_order = 'ASC', sort_key='id', page_size = 0):
+        return self.search_entity('SAM', filter, sort_order, sort_key, page_size)
+
+
