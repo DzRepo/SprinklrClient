@@ -8,7 +8,7 @@ A simple Python client library for interacting with Sprinklr's REST API
 
 - The Report examples  (other than Audit) will not work as is as they will need customizing to unique customer environments. Follow the example in the [Sprinklr Reporting Widget Tutorial](https://developer.sprinklr.com/docs/read/api_tutorials/Sprinklr_Reporting_Widget_Tutorial), translating values as necessary.
 
-Current Supported Functions via the test client ([SprinklrClientTest](SprinklrClientTest.py)):
+Here is a list of current supported functions via the test client ([SprinklrClientTest.py](SprinklrClientTest.py)):
 
 ```
 SprinklrClientTest Authorize {apikey} {redirect_uri}
