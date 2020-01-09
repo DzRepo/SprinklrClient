@@ -408,27 +408,17 @@ def create_case():
 
     client.create_case_v2(case)
 
-
 def get_case_by_number(case_number):
     global client
-    if client.get_case_by_number(case_number):
-        print(json.dumps(client.result, sort_keys=True, indent=4))
-    else:
-        print(client.status_message)   
+    process_response(client.get_case_by_number(case_number))
 
 def get_message_by_id_and_source(message_id, source_type):
     global client
-    if client.get_message_by_id_and_source(message_id, source_type):
-        print(json.dumps(client.result, sort_keys=True, indent=4))
-    else:
-        print(client.status_message)   
+    process_response(client.get_message_by_id_and_source(message_id, source_type))
 
 def get_case_messages(case_id):
     global client
-    if client.get_case_associated_messages(case_id):
-        print(json.dumps(client.result, sort_keys=True, indent=4))
-    else:
-        print(client.status_message)
+    process_response(client.get_case_associated_messages(case_id))
 
 def get_user():
     global client
@@ -521,8 +511,14 @@ def main():
         settings = EasySettings("Sprinklr.conf")
 
         key = settings.get('key')
+        path = settings.get('path')
         access_token = settings.get('access_token')
-        client = sc.SprinklrClient(key=key, access_token=access_token)
+
+        if len(path) == 0:
+            path = None
+
+        #If using a differnent enviornment other that Prod, set path to that value (like 'prod2')
+        client = sc.SprinklrClient(key=key, access_token=access_token, path=path)
 
         if len(sys.argv) > 1:
             command = str(sys.argv[1]).upper()

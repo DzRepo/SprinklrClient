@@ -22,6 +22,7 @@ class SprinklrClient:
         self.result = None
         self.key = key
         self.raw = None
+        self.search_cursor = None
 
         # current valid path options are (None), prod0, prod2, or sandbox
         if path is not None:
@@ -35,7 +36,6 @@ class SprinklrClient:
         
     def delete_request(self, request_url: str, data = None):
         """
-
         :rtype: object
         """
 
@@ -665,18 +665,38 @@ class SprinklrClient:
                  'size': page_size
                 }
              }
-        self.post_request(request_url, request_data)
+        if (self.post_request(request_url, request_data)):
+            self.search_cursor = self.result["data"]["cursor"]
+        else:
+             self.search_cursor = None
 
-    def search_campaign(self, filter,  sort_order = 'ASC', sort_key='id', page_size = 0):
+    def search_campaign(self, filter,  sort_order = 'ASC', sort_key='name', page_size = 20):
         return self.search_entity('CAMPAIGN', filter, sort_order, sort_key, page_size)
+
+    def search_campaign_next(self):
+        return self.search_next_page("CAMPAIGN")
         
-    def search_case(self, filter,  sort_order = 'ASC', sort_key='id', page_size = 0):
+    def search_case(self, filter,  sort_order = 'ASC', sort_key='id', page_size = 20):
         return self.search_entity('CASE', filter, sort_order, sort_key, page_size)
 
-    def search_message(self, filter, sort_order = 'ASC', sort_key='id', page_size = 0):
+    def search_case_next(self):
+        return self.search_next_page("CASE")
+
+    def search_message(self, filter, sort_order = 'ASC', sort_key='id', page_size = 20):
         return self.search_entity('MESSAGE', filter, sort_order, sort_key, page_size)
 
-    def search_sam(self, filter, sort_order = 'ASC', sort_key='id', page_size = 0):
+    def search_message_next(self):
+        return self.search_next_page("MESSAGE")
+
+    def search_sam(self, filter, sort_order = 'ASC', sort_key='name', page_size = 20):
         return self.search_entity('SAM', filter, sort_order, sort_key, page_size)
 
+    def search_sam_next(self):
+        return self.search_next_page("SAM")
 
+    def search_next_page(self, entity_type):
+        if self.search_cursor is not None:
+            request_url = f'https://api2.sprinklr.com/{self.path}api/v2/search/{entity_type}?id={self.search_cursor}'
+            return self.get_request(request_url)
+        else:
+            return False
