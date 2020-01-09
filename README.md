@@ -1,5 +1,5 @@
 # SprinklrClient
-A simple Python client library for interacting with Sprinklr's REST API
+A Python client library (SDK) for interacting with Sprinklr's REST API
 
 **Notes:**
 - See the [Generating an Access Token](Sprinklr%20Client%20Library%20-%20Generating%20an%20Access%20Token.pdf) document for directions after registering for a developer account at [Developer.Sprinklr.com](https://developer.sprinklr.com).
