@@ -2,7 +2,7 @@
 A simple Python client library for interacting with Sprinklr's REST API
 
 **Notes:**
-- See the [Generating an Access Token](Generating an Access Token.pdf) After registering for a developer account at [Developer.Sprinklr.com](https://developer.sprinklr.com), creating an app and authorizing it to a Sprinklr account as outlined in the [Getting Started](https://developer.sprinklr.com/docs/read/api_overview/Getting_Started) tutorial, the GetAccessToken command of SprinklrClientTest.py can be used to retrieve and store the AccessToken, RefreshToken and key to a .conf file for use by the other API examples. Make sure the Sprinklr.conf file is kept safe!
+- See the [Generating an Access Token](Generating%20an%20Access@20Token.pdf)) after registering for a developer account at [Developer.Sprinklr.com](https://developer.sprinklr.com), creating an app and authorizing it to a Sprinklr account as outlined in the [Getting Started](https://developer.sprinklr.com/docs/read/api_overview/Getting_Started) tutorial, the GetAccessToken command of SprinklrClientTest.py can be used to retrieve and store the AccessToken, RefreshToken and key to a .conf file for use by the other API examples. Make sure the Sprinklr.conf file is kept safe!
 
 - The Case Create & Update, and Asset Search functions are not tested and most likely do not work.
 
