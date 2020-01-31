@@ -34,6 +34,7 @@ class SprinklrClient:
             self.path = ""
         logging.info("Client initialized. Path is |" + self.path + "|")
         
+# HTTP Methods
     def delete_request(self, request_url: str, data = None):
         """
         :rtype: object
@@ -76,23 +77,19 @@ class SprinklrClient:
 
         return self.status_code == HTTP_OK
 
+    def get_request(self, request_url, returns_json=False):
+        headers = {'key': self.key,
+                   'Authorization': "Bearer " + self.access_token}
 
-    def put_request(self, request_url: str, data = None):
-        """
-        :rtype: object
-        """
+        if returns_json:
+            headers['accept'] = 'application/json'
 
         response = None
 
-        headers = {'key': self.key,
-                   'Authorization': "Bearer " + self.access_token,
-                   'Content-Type': 'application/json',
-                   'cache-control': 'no-cache'}
-
-        logging.info("Posting to URL:" + request_url)
-
+        logging.debug("Requesting URL:" + request_url)
         try:
-            response = requests.put(url=request_url, headers=headers, data=json.dumps(data))
+            response = requests.get(url=request_url, headers=headers)
+            logging.debug("response code:" + str(response.status_code))
         except ConnectionError:
             logging.error("Connection Error:" + request_url)
             self.status_message = "Connection Error"
@@ -112,10 +109,14 @@ class SprinklrClient:
         if response is not None:
             self.status_code = response.status_code
             self.raw = response.text
-            self.result = json.loads(response.text)
+            try:
+                self.result = json.loads(response.text)
+            except Exception:
+                self.result = response.text
 
         if self.status_code != HTTP_OK:
-            logging.error('put_request:' + response.text)
+            logging.error('get_request:' + response.text)
+            self.status_message = response.text
 
         return self.status_code == HTTP_OK
 
@@ -163,19 +164,22 @@ class SprinklrClient:
 
         return self.status_code == HTTP_OK
 
-    def get_request(self, request_url, returns_json=False):
-        headers = {'key': self.key,
-                   'Authorization': "Bearer " + self.access_token}
-
-        if returns_json:
-            headers['accept'] = 'application/json'
+    def put_request(self, request_url: str, data = None):
+        """
+        :rtype: object
+        """
 
         response = None
 
-        logging.debug("Requesting URL:" + request_url)
+        headers = {'key': self.key,
+                   'Authorization': "Bearer " + self.access_token,
+                   'Content-Type': 'application/json',
+                   'cache-control': 'no-cache'}
+
+        logging.info("Posting to URL:" + request_url)
+
         try:
-            response = requests.get(url=request_url, headers=headers)
-            logging.debug("response code:" + str(response.status_code))
+            response = requests.put(url=request_url, headers=headers, data=json.dumps(data))
         except ConnectionError:
             logging.error("Connection Error:" + request_url)
             self.status_message = "Connection Error"
@@ -195,17 +199,31 @@ class SprinklrClient:
         if response is not None:
             self.status_code = response.status_code
             self.raw = response.text
-            try:
-                self.result = json.loads(response.text)
-            except Exception:
-                self.result = response.text
+            self.result = json.loads(response.text)
 
         if self.status_code != HTTP_OK:
-            logging.error('get_request:' + response.text)
-            self.status_message = response.text
+            logging.error('put_request:' + response.text)
 
         return self.status_code == HTTP_OK
 
+#Account
+    def get_account_by_channel_id(self, accountType, channelId):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/account/{accountType}/{channelId}'
+        return self.get_request(request_url, returns_json=True)
+
+    def delete_account(self, accountId):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/account/{accountId}'
+        return self.delete_request(request_url)
+
+    def update_custom_properties(self, accountId, properties):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/account/update/{accountId}/customProperties'
+        return self.put_request(request_url, data=properties)
+
+    def update_account_visibility(self, accountId, permissions):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/account/{accountId}/visibility-permissions'
+        return self.put_request(request_url, permissions)
+
+# Authorize
     # this endpoint only returns the URL used to start the authorization process. It does not invoke the web-browser required workflow.
     def authorize(self, api_key, redirect_uri):
         request_url = f'https://api2.sprinklr.com/{self.path}oauth/authorize?client_id={api_key}&response_type=code&redirect_uri={redirect_uri}'
@@ -262,13 +280,149 @@ class SprinklrClient:
         else:
             if response.content is not None:
                 self.result = response.content
-
         return response.status_code == HTTP_OK
 
-    def report_query(self, data):
-        request_url = f' https://api2.sprinklr.com/{self.path}api/v1/reports/query'
-        self.post_request(request_url, data)
+# Assets 1.0
+    
+    def asset_create(self, asset_data):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam'
+        return self.post_request(request_url, data=asset_data)   
+
+    def asset_delete(self, asset_id):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/{asset_id}'
+        return self.delete_request(request_url, None)
+    
+    def asset_import(self, import_type, url, upload_tracker_id):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/importUrl?importType={import_type}&url={url}&uploadTrackerId={upload_tracker_id}'
+        return self.post_request(request_url, None)
+
+    def asset_read(self, asset_id):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/{asset_id}'
+        return self.get_request(request_url, returns_json=True)
+
+    def asset_search(self, filters, sort_list, keyword_search, range_condition, only_available=False, start=0, rows=20):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/search'
+        request = {
+            "filters":filters,
+            "sortList":sort_list,
+            "keywordSearch":keyword_search,
+            "rangeCondition":keyword_search,
+            "onlyAvailable":only_available,
+            "start":start,
+            "rows":rows
+        }
+        return requests.post(request_url, data=request)
+   
+    def asset_update(self, asset_id, name, description, asset_status, expiry_time, available_after_time, 
+                     tags, share_config, campaign_id, partner_custom_fields, client_custom_properties, restricted=None):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/{asset_id}'
+        data = {}
+        return self.put_request(request_url, data)
+    
+    # TODO: File upload - may nead to alter post to or pull in single instance version    
+    def asset_upload(self, content_type, upload_tracker_id, file_name):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/upload?contentType={content_type}&uploadTrackerId={upload_tracker_id}'
+        data = {}
+        return self.post_request(request_url, data)
+
+# Assets 2.0
+
+    def create_asset_group(self, asset_group):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/asset-group'
+        return self.post_request(request_url, data=asset_group)
+
+    def get_asset_group(self, groupId):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/asset-group/{groupId}'
+        return self.get_request(request_url)
+
+    def update_asset_group(self, groupId, asset_update):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/asset-group/{groupId}'
+        return self.put_request(request_url, data=asset_update)
+
+    def delete_asset_group(self, groupId):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/asset-group/{groupId}'
+        return self.delete_request(request_url)
+
+# Audit
+
+    def get_audit(self):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/audit/fetch'
+        return self.get_request(request_url)
+
+# Bootstrap
+    def get_partner_campaigns(self):
+        return self.get_resources('PARTNER_CAMPAIGNS')
+
+    def get_webhook_types(self):
+        request_url = f"https://api2.sprinklr.com/{self.path}api/v2/webhook-subscriptions/webhook-types"
+        
+        self.get_request(request_url)
         return self.status_code == HTTP_OK
+  
+    def get_resources(self, types):
+
+        request_url = f"https://api2.sprinklr.com/{self.path}api/v1/bootstrap/resources?types={types}"
+
+        self.get_request(request_url)
+        return self.status_code == HTTP_OK
+
+    def get_macros(self):
+        return self.get_resources('MACROS')
+
+    def get_client_profile_lists(self):
+        return self.get_resources('CLIENT_PROFILE_LISTS')
+
+    def get_partner_profile_lists(self):
+        return self.get_resources('PARTNER_PROFILE_LISTS')
+
+    def get_client_queues(self):
+        return self.get_resources('CLIENT_QUEUES')
+
+    def get_partner_queues(self):
+        return self.get_resources('PARTNER_QUEUES')
+
+    def get_approval_paths(self):
+        return self.get_resources('APPROVAL_PATHS')
+
+    def get_accessible_users(self):
+        return self.get_resources('ACCESSIBLE_USERS')
+
+    def get_um_priorities(self):
+        return self.get_resources('UM_PRIORITIES')
+
+    def get_um_statuses(self):
+        return self.get_resources('UM_STATUSES')
+
+    def get_partner_accounts(self):
+        return self.get_resources('PARTNER_ACCOUNTS')
+
+# Campaigns 1.0
+
+    def create_campaign(self, campaign_data):
+        request_url = f'https://api2.sprinklr.com/{self.path}/api/v1/campaign'
+        return self.post_request(request_url, campaign_data)
+
+# Campaigns 2.0
+
+# Case 1.0
+
+    def create_case_v1(self, case_data):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/case'
+        return self.post_request(request_url, data=case_data)
+
+    def delete_case_v1(self, case_id):
+        request_url = f'https://api2.sprinklr.com/{{env}}/api/v1/case'
+        return self.delete_request(request_url, )
+
+    def search_case_v1(self, search_parameters):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/case/search'
+        return self.post_request(request_url, data=search_parameters)
+
+    def update_case_v1(self, update_parameters):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/case/update'
+        return self.post_request(request_url, data=update_parameters)
+
+# Case 2.0
 
     def create_case_v2(self, case: CaseCreate):
     
@@ -315,13 +469,13 @@ class SprinklrClient:
         request_url = f'https://api2.sprinklr.com/{self.path}api/v2/case/associated-messages?id={case_id}'
         return self.get_request(request_url, returns_json=True)
 
-    def delete_case(self, case_id):
+    def delete_case_v2(self, case_id):
         delete_url = f'https://api2.sprinklr.com/{self.path}api/v2/case'
     
         data = { case_id }
         return self.delete_request(delete_url, data)
 
-    def update_case(self, case_id : int, case : CaseUpdate):
+    def update_case_v2(self, case_id : int, case : CaseUpdate):
         request_url = f'https://api2.sprinklr.com/{self.path}api/v2/case'
         
         
@@ -339,87 +493,51 @@ class SprinklrClient:
 
         return response.status_code == HTTP_OK
 
+# Comment
+    def search_comments(self, asset_id, asset_class):
+        request_url=f'https://api2.sprinklr.com/{self.path}api/v1/generic/comment/search/{asset_class}/{asset_id}'
+        return self.post_request(request_url, data=None)
 
-    # TODO: File upload - may nead to alter post to or pull in single instance version    
-    def asset_upload(self, content_type, upload_tracker_id, file_name):
-        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/upload?contentType={content_type}&uploadTrackerId={upload_tracker_id}'
-        data = {}
-        return self.post_request(request_url, data)
+# Short URL
+ 
+    def get_client_url_shortners(self):
+        return self.get_resources('CLIENT_URL_SHORTNERS')
 
-    def asset_create(self):
-        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam'
-        data = {}
-        return self.post_request(request_url, data)
-    
-    def asset_search(self, filters, sort_list, keyword_search, range_condition, only_available=False, start=0, rows=20):
-        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/search'
-        request = {
-            "filters":filters,
-            "sortList":sort_list,
-            "keywordSearch":keyword_search,
-            "rangeCondition":keyword_search,
-            "onlyAvailable":only_available,
-            "start":start,
-            "rows":rows
+    def create_short_url(self, shortner_id, link):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/link/shorten'
+        post_data = {
+            "link": {link},
+            "urlShortnerId": {shortner_id}
         }
-        response = requests.post(request_url, data=request)
-        self.status_code = response.status_code
+        return self.post_request(request_url, data=post_data)
 
-        if response.status_code == HTTP_OK:
-            self.encoding = response.encoding
-            j_result = json.loads(response.content)
-            self.access_token = j_result["access_token"]
-            self.token_type = j_result["token_type"]
-            self.refresh_token = j_result["refresh_token"]
-        else:
-            if response.content is not None:
-                self.result = response.content
+# Custom Fields
+    def create_custom_field(self, post_data):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/customfield'
+        self.post_request(request_url, data=post_data)
 
-        return response.status_code == HTTP_OK
-    
-    def asset_read(self, asset_id):
-        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/{asset_id}'
-        return self.get_request(request_url, returns_json=True)
-    
-    def asset_import(self, import_type, url, upload_tracker_id):
-        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/importUrl?importType={import_type}&url={url}&uploadTrackerId={upload_tracker_id}'
-        return self.post_request(request_url, None)
+    def search_custom_field(self, search_data):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/customfield/search'
+        self.post_request(request_url, data=search_data)
 
-    def asset_update(self, asset_id, name, description, asset_status, expiry_time):
-        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/{asset_id}'
-        data = {}
-        return self.put_request(request_url, data)
-    
-    def asset_delete(self, asset_id):
-        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/{asset_id}'
-        return self.delete_request(request_url, None)
+# TODO ------------- CUSTOM FIELD UPDATE is next
 
+    def get_profile_custom_fields(self):
+        return self.get_resources('PROFILE_CUSTOM_FIELDS')
 
-    def get_message_by_id_and_source(self, message_id, source_type):
-        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/message?id={message_id}&sourceType={source_type}'
-        return self.get_request(request_url, returns_json=True)
+    def get_account_custom_fields(self):
+        return self.get_resources('ACCOUNT_CUSTOM_FIELDS')
 
-    def get_listening_insight_volume_trend(self, since_time, until_time,
-                                           metric="MENTIONS", timezone_offset=0,
-                                           dimension=None, filter_value=None):
-        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/listening/query/widget'
+    def get_media_asset_custom_fields(self):
+        return self.get_resources('MEDIA_ASSET_CUSTOM_FIELDS')
 
-        request_data = \
-            {"sinceTime": since_time,
-             "untilTime": until_time,
-             "timezoneOffset": timezone_offset,
-             "details": {
-                 "widgetType": "TREND"
-             },
-             "filters": [
-                 {"dimension": dimension,
-                  "filterValues": [filter_value]}
-             ],
-             "metric": metric,
-             }
-        self.post_request(request_url, request_data)
-        return self.status_code == HTTP_OK
+    def get_outbound_custom_fields(self):
+        return self.get_resources('OUTBOUND_CUSTOM_FIELDS')
 
+    def get_inbound_custom_fields(self):
+        return self.get_resources('INBOUND_CUSTOM_FIELDS')
+
+# Engagement Dashboard
     def request_all_dashboards(self):
         """
         request all dashboards
@@ -455,6 +573,28 @@ class SprinklrClient:
             request_url += "&untilDate=" + until_date
 
         self.get_request(request_url)
+        return self.status_code == HTTP_OK
+
+# Extensions
+
+# Listening
+    def get_listening_insight_volume_trend(self, since_time, until_time, metric="MENTIONS", timezone_offset=0, dimension=None, filter_value=None):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/listening/query/widget'
+
+        request_data = \
+            {"sinceTime": since_time,
+             "untilTime": until_time,
+             "timezoneOffset": timezone_offset,
+             "details": {
+                 "widgetType": "TREND"
+             },
+             "filters": [
+                 {"dimension": dimension,
+                  "filterValues": [filter_value]}
+             ],
+             "metric": metric,
+             }
+        self.post_request(request_url, request_data)
         return self.status_code == HTTP_OK
 
     def get_listening_topics(self):
@@ -541,117 +681,42 @@ class SprinklrClient:
 
         return self.status_code == HTTP_OK
 
-    def get_resources(self, types):
+# Message 1.0
 
-        request_url = f"https://api2.sprinklr.com/{self.path}api/v1/bootstrap/resources?types={types}"
-
-        self.get_request(request_url)
+# Message 2.0
+    def get_message_by_id_and_source(self, message_id, source_type):
+       request_url = f'https://api2.sprinklr.com/{self.path}api/v2/message?id={message_id}&sourceType={source_type}'
+       return self.get_request(request_url, returns_json=True)
+       
+    def report_query(self, data):
+        request_url = f' https://api2.sprinklr.com/{self.path}api/v1/reports/query'
+    
+        self.post_request(request_url, data)
         return self.status_code == HTTP_OK
-
-    def get_macros(self):
-        return self.get_resources('MACROS')
-
-    def get_user_groups(self):
-        return self.get_resources('USER_GROUPS')
-
-    def get_permissions(self):
-        return self.get_resources('PERMISSIONS')
-
-    def get_client_profile_lists(self):
-        return self.get_resources('CLIENT_PROFILE_LISTS')
-
-    def get_partner_profile_lists(self):
-        return self.get_resources('PARTNER_PROFILE_LISTS')
-
-    def get_client_queues(self):
-        return self.get_resources('CLIENT_QUEUES')
-
-    def get_partner_queues(self):
-        return self.get_resources('PARTNER_QUEUES')
-
-    def get_approval_paths(self):
-        return self.get_resources('APPROVAL_PATHS')
-
-    def get_accessible_users(self):
-        return self.get_resources('ACCESSIBLE_USERS')
-
-    def get_um_priorities(self):
-        return self.get_resources('UM_PRIORITIES')
-
-    def get_um_statuses(self):
-        return self.get_resources('UM_STATUSES')
-
-    def get_account_custom_fields(self):
-        return self.get_resources('ACCOUNT_CUSTOM_FIELDS')
-
-    def get_media_asset_custom_fields(self):
-        return self.get_resources('MEDIA_ASSET_CUSTOM_FIELDS')
-
-    def get_profile_custom_fields(self):
-        return self.get_resources('PROFILE_CUSTOM_FIELDS')
-
-    def get_outbound_custom_fields(self):
-        return self.get_resources('OUTBOUND_CUSTOM_FIELDS')
-
-    def get_inbound_custom_fields(self):
-        return self.get_resources('INBOUND_CUSTOM_FIELDS')
-
-    def get_client_url_shortners(self):
-        return self.get_resources('CLIENT_URL_SHORTNERS')
-
-    def get_clients(self):
-        return self.get_resources('CLIENTS')
-
-    def get_client_users(self):
-        return self.get_resources('CLIENT_USERS')
-
-    def get_partner_users(self):
-        return self.get_resources('PARTNER_USERS')
-
-    def get_partner_account_groups(self):
-        return self.get_resources('PARTNER_ACCOUNT_GROUPS')
-
-    def get_partner_campaigns(self):
-        return self.get_resources('PARTNER_CAMPAIGNS')
-
-    def get_partner_accounts(self):
-        return self.get_resources('PARTNER_ACCOUNTS')
-
+    
     def get_report_metrics(self, report_engine, report_type):
         request_url = f"https://api2.sprinklr.com/{self.path}api/v1/reports/metadata/{report_engine}?{report_type}"
 
         self.get_request(request_url)
         return self.status_code == HTTP_OK
 
-    def get_webhook_types(self):
-        request_url = f"https://api2.sprinklr.com/{self.path}api/v2/webhook-subscriptions/webhook-types"
-        
-        self.get_request(request_url)
-        return self.status_code == HTTP_OK
+# Reporting 2.0
 
-    def get_user(self):
-        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/me'
-        
-        self.get_request(request_url)
-        return self.status_code == HTTP_OK
+# SAM
 
-    def get_user_by_id(self, user_id):
-        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/scim/v2/Users/{user_id}'
-        
-        self.get_request(request_url)
-        return self.status_code == HTTP_OK
+# Search
 
     class Filter:
         def __init__(self):
-            self.type = None
-            self.filters = []
+                self.type = None
+                self.filters = []
 
-        class Filters:
-            def __init__(self):
+    class Filters:
+        def __init__(self):
                 self.type = None
                 self.key = None
                 self.values = []
-    
+
     def search_entity(self, entity_type, filter : Filter, sort_order = 'ASC', sort_key='id', page_size = 0):
         request_url = f'https://api2.sprinklr.com/{self.path}api/v2/search/{entity_type}'
 
@@ -700,3 +765,50 @@ class SprinklrClient:
             return self.get_request(request_url)
         else:
             return False
+  
+# Users
+    def get_user(self):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/me'
+        
+        self.get_request(request_url)
+        return self.status_code == HTTP_OK
+
+    def get_user_by_id(self, user_id):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/scim/v2/Users/{user_id}'
+        
+        self.get_request(request_url)
+        return self.status_code == HTTP_OK
+
+    def get_user_groups(self):
+        return self.get_resources('USER_GROUPS')
+
+    def get_permissions(self):
+        return self.get_resources('PERMISSIONS')
+
+    def get_clients(self):
+        return self.get_resources('CLIENTS')
+
+    def get_client_users(self):
+        return self.get_resources('CLIENT_USERS')
+
+    def get_partner_users(self):
+        return self.get_resources('PARTNER_USERS')
+
+    def get_partner_account_groups(self):
+        return self.get_resources('PARTNER_ACCOUNT_GROUPS')
+
+# Paid Initiative
+
+# Product
+
+# Profile 1.0
+
+# Profile 2.0
+
+# Publishing 1.0
+
+# Publishing 2.0
+
+# Reporting 1.0
+
+# Streams
