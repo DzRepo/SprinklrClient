@@ -6,6 +6,7 @@ from SprinklrCase import CaseCreate, CaseUpdate
 from SprinklrReport import ReportBuilder
 
 HTTP_OK = 200
+HTTP_NO_RESPONSE = 204
 
 class SprinklrClient:
     """Sprinklr Client Library"""
@@ -206,7 +207,7 @@ class SprinklrClient:
 
         return self.status_code == HTTP_OK
 
-#Account
+# Account
     def get_account_by_channel_id(self, accountType, channelId):
         request_url = f'https://api2.sprinklr.com/{self.path}api/v2/account/{accountType}/{channelId}'
         return self.get_request(request_url, returns_json=True)
@@ -355,16 +356,12 @@ class SprinklrClient:
 
     def get_webhook_types(self):
         request_url = f"https://api2.sprinklr.com/{self.path}api/v2/webhook-subscriptions/webhook-types"
-        
-        self.get_request(request_url)
-        return self.status_code == HTTP_OK
+        return self.get_request(request_url)
   
     def get_resources(self, types):
 
         request_url = f"https://api2.sprinklr.com/{self.path}api/v1/bootstrap/resources?types={types}"
-
-        self.get_request(request_url)
-        return self.status_code == HTTP_OK
+        return self.get_request(request_url)
 
     def get_macros(self):
         return self.get_resources('MACROS')
@@ -498,29 +495,26 @@ class SprinklrClient:
         request_url=f'https://api2.sprinklr.com/{self.path}api/v1/generic/comment/search/{asset_class}/{asset_id}'
         return self.post_request(request_url, data=None)
 
-# Short URL
- 
-    def get_client_url_shortners(self):
-        return self.get_resources('CLIENT_URL_SHORTNERS')
-
-    def create_short_url(self, shortner_id, link):
-        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/link/shorten'
-        post_data = {
-            "link": {link},
-            "urlShortnerId": {shortner_id}
-        }
-        return self.post_request(request_url, data=post_data)
-
 # Custom Fields
     def create_custom_field(self, post_data):
         request_url = f'https://api2.sprinklr.com/{self.path}api/v1/customfield'
-        self.post_request(request_url, data=post_data)
+        return self.post_request(request_url, data=post_data)
+        #TODO create object for request data
 
     def search_custom_field(self, search_data):
         request_url = f'https://api2.sprinklr.com/{self.path}api/v1/customfield/search'
-        self.post_request(request_url, data=search_data)
+        return self.post_request(request_url, data=search_data)
+        #TODO create object for request data
 
-# TODO ------------- CUSTOM FIELD UPDATE is next
+    def update_custom_field(self, field_id, data):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/customfield/{field_id}'
+        return self.put_request(request_url, data)
+        #TODO create object for request data
+
+    def update_custom_field_options(self, field_id, data):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/customField/{field_id}/updateOptions'
+        return self.put_request(request_url, data)
+        #TODO create object for request data
 
     def get_profile_custom_fields(self):
         return self.get_resources('PROFILE_CUSTOM_FIELDS')
@@ -552,9 +546,7 @@ class SprinklrClient:
         :return: dashboard metadata and column descriptions
         """
         request_url = f'https://api2.sprinklr.com/{self.path}api/v1/dashboard/{urllib.parse.quote(dashboard_name)}'
-
-        self.get_request(request_url)
-        return self.status_code == HTTP_OK
+        return self.get_request(request_url)
 
     def request_dashboard_stream(self, dashboard_id, start=0, rows=21,
                                  since_date=None, until_date=None, sort='snCreatedTime%20desc'):
@@ -572,30 +564,47 @@ class SprinklrClient:
         if until_date is not None:
             request_url += "&untilDate=" + until_date
 
-        self.get_request(request_url)
-        return self.status_code == HTTP_OK
+        return self.get_request(request_url)
 
 # Extensions
 
-# Listening
+    def create_extension(self, extension):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/extension'
+        return self.post_request(request_url, data=extension)
+        #TODO create extension object
+
+    def read_extension(self, id):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/extension/{id}'
+        return self.get_request(request_url)
+
+    def update_extension(self, id, extension):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/extension/{id}'
+        return self.put_request(request_url, data=extension)
+
+    def delete_extension(self, id):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/extension/{id}'
+        return self.delete_request(request_url)
+
     def get_listening_insight_volume_trend(self, since_time, until_time, metric="MENTIONS", timezone_offset=0, dimension=None, filter_value=None):
         request_url = f'https://api2.sprinklr.com/{self.path}api/v1/listening/query/widget'
 
         request_data = \
             {"sinceTime": since_time,
-             "untilTime": until_time,
-             "timezoneOffset": timezone_offset,
-             "details": {
-                 "widgetType": "TREND"
-             },
-             "filters": [
-                 {"dimension": dimension,
-                  "filterValues": [filter_value]}
-             ],
-             "metric": metric,
-             }
-        self.post_request(request_url, request_data)
-        return self.status_code == HTTP_OK
+                "untilTime": until_time,
+                "timezoneOffset": timezone_offset,
+                "details": {
+                    "widgetType": "TREND"
+                },
+                "filters": [
+                    {"dimension": dimension,
+                    "filterValues": [filter_value]}
+                ],
+                "metric": metric,
+            }
+
+        return self.post_request(request_url, request_data)
+
+# Listening
 
     def get_listening_topics(self):
         """
@@ -605,89 +614,98 @@ class SprinklrClient:
         request_url = f'https://api2.sprinklr.com/{self.path}api/v1/listening/topics'
 
         logging.info("Calling get_listening_topics")
-
-        self.get_request(request_url)
-        return self.status_code == HTTP_OK
-
+        return self.get_request(request_url)
+        
     def get_listening_stream(self, filter_value, since_time, until_time, timezone_offset=14400000,
-                             time_field="SN_CREATED_TIME", details="STREAM", dimension="TOPIC",
-                             metric="MENTIONS", trend_aggregation_period=None, start=1, rows=100,
-                             echo_request=False, tag=None, sort_key=None, message_format_options=None):
+                                time_field="SN_CREATED_TIME", details="STREAM", dimension="TOPIC",
+                                metric="MENTIONS", trend_aggregation_period=None, start=1, rows=100,
+                                echo_request=False, tag=None, sort_key=None, message_format_options=None):
 
-        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/listening/query/stream'
-        # Sample Request Data
-        # '{
-        #     "sinceTime": "1544418000000",
-        #     "untilTime": "1547152918520",
-        #     "details": {
-        #         "widgetType": "STREAM"
-        #     },
-        #     "filters": [
-        #         {
-        #             "dimension": "TOPIC",
-        #             "filterValues": [
-        #                 "595c50dbe4b064e21f85d074"
-        #             ]
-        #         }
-        #     ],
-        #     "metric": "MENTIONS",
-        #     "timezoneOffset": 14400000,
-        #     "rows": 100,
-        #     "start": 1
-        # }'
-        #
+            request_url = f'https://api2.sprinklr.com/{self.path}api/v1/listening/query/stream'
+            # Sample Request Data
+            # '{
+            #     "sinceTime": "1544418000000",
+            #     "untilTime": "1547152918520",
+            #     "details": {
+            #         "widgetType": "STREAM"
+            #     },
+            #     "filters": [
+            #         {
+            #             "dimension": "TOPIC",
+            #             "filterValues": [
+            #                 "595c50dbe4b064e21f85d074"
+            #             ]
+            #         }
+            #     ],
+            #     "metric": "MENTIONS",
+            #     "timezoneOffset": 14400000,
+            #     "rows": 100,
+            #     "start": 1
+            # }'
+            #
 
-        request_data = \
-            {"sinceTime": since_time,
-             "untilTime": until_time,
-             "timeField": time_field,
-             "timezoneOffset": timezone_offset,
-             "details": {"widgetType": details},
-             "filters": [
-                 {"dimension": dimension,
-                  "filterValues": [filter_value]}
-             ],
-             "metric": metric, "start": start, "rows": rows,
-             }
+            request_data = \
+                {"sinceTime": since_time,
+                "untilTime": until_time,
+                "timeField": time_field,
+                "timezoneOffset": timezone_offset,
+                "details": {"widgetType": details},
+                "filters": [
+                    {"dimension": dimension,
+                    "filterValues": [filter_value]}
+                ],
+                "metric": metric, "start": start, "rows": rows,
+                }
 
-        # The trend aggregate period; applicable for TREND and GROUPED_TREND Widget
-        # {HOUR, DAY, WEEK, MONTH, QUARTER, YEAR}
-        if trend_aggregation_period is not None:
-            request_data["trendAggregationPeriod"] = trend_aggregation_period
+            # The trend aggregate period; applicable for TREND and GROUPED_TREND Widget
+            # {HOUR, DAY, WEEK, MONTH, QUARTER, YEAR}
+            if trend_aggregation_period is not None:
+                request_data["trendAggregationPeriod"] = trend_aggregation_period
 
-        # A text value that is sent and returned unaltered, so topics can be stored and associated correctly.
-        if tag is not None:
-            request_data["tag"] = tag
+            # A text value that is sent and returned unaltered, so topics can be stored and associated correctly.
+            if tag is not None:
+                request_data["tag"] = tag
 
-        # sortKey can take one of 3 values:
-        # ‘SYSTEM_CREATED_TIME’ - system created time
-        # ‘CREATED_TIME’ - social network created time (default)
-        # ‘MODIFIED_TIME’ - modified time
-        # It sorts the response messages based upon the specified field.
-        if sort_key is not None:
-            request_data["sortKey"] = sort_key
+            # sortKey can take one of 3 values:
+            # ‘SYSTEM_CREATED_TIME’ - system created time
+            # ‘CREATED_TIME’ - social network created time (default)
+            # ‘MODIFIED_TIME’ - modified time
+            # It sorts the response messages based upon the specified field.
+            if sort_key is not None:
+                request_data["sortKey"] = sort_key
 
-        if echo_request is not None:
-            request_data["echoRequest"] = echo_request
+            if echo_request is not None:
+                request_data["echoRequest"] = echo_request
 
-        # Comma delimit format values = {strip_html, text strip_url, include_original}
-        # strip_html - Strip html from the message text
-        # strip_url - Strip Urls from the message text
-        # include_original - Include the original text as well in the field "originalText"
-        if message_format_options is not None:
-            request_data["messageFormatOptions"] = message_format_options
+            # Comma delimit format values = {strip_html, text strip_url, include_original}
+            # strip_html - Strip html from the message text
+            # strip_url - Strip Urls from the message text
+            # include_original - Include the original text as well in the field "originalText"
+            if message_format_options is not None:
+                request_data["messageFormatOptions"] = message_format_options
+            return self.post_request(request_url, data=request_data)
 
-        self.post_request(request_url, data=request_data)
-
-        return self.status_code == HTTP_OK
+# Listening Widgets
+    def get_listening_widget(self, data):
+        request_url = f'https://api2.sprinklr.com{self.path}api/v1/listening/query/widget'
+        return self.post_request(request_url, data)
+        #TODO: Create request object & additional methods for various widgets
 
 # Message 1.0
 
+    def get_message_conversation(self, data):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/conversations/new/message-details'
+        return self.post_request(request_url, data)
+
+    def get_message_by_UMID(self, umid):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/message/{umid}'
+        return self.get_request(request_url)
+
 # Message 2.0
     def get_message_by_id_and_source(self, message_id, source_type):
-       request_url = f'https://api2.sprinklr.com/{self.path}api/v2/message?id={message_id}&sourceType={source_type}'
-       return self.get_request(request_url, returns_json=True)
-       
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v2/message?id={message_id}&sourceType={source_type}'
+        return self.get_request(request_url, returns_json=True)
+
     def report_query(self, data):
         request_url = f' https://api2.sprinklr.com/{self.path}api/v1/reports/query'
     
@@ -697,8 +715,87 @@ class SprinklrClient:
     def get_report_metrics(self, report_engine, report_type):
         request_url = f"https://api2.sprinklr.com/{self.path}api/v1/reports/metadata/{report_engine}?{report_type}"
 
-        self.get_request(request_url)
-        return self.status_code == HTTP_OK
+        return self.get_request(request_url)
+
+# Paid Initiative
+    def create_paid_initiative(self, api_link, data):
+        request_url = f'https://api2.sprinklr.com/{self.path}{api_link}/paid/entity/paidinitiative/create'
+        self.post_request(request_url, data)
+
+# Product
+    def create_product(self, data):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/product'
+        return self.post_request(request_url, data)
+        #TODO Create object for reqeust
+
+
+    def delete_product(self, id):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/product/{id}'
+        return self.delete_request(request_url)
+
+    def search_product(self, data):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/product/search'
+        return self.post_request(request_url, data)
+
+    def update_product(self, id, data):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/product/{id}'
+        return self.put_request(request_url, data)
+
+# Profile 1.0
+
+    def profile_conversation_read(self, sn_type, sn_user_id, start=0, rows=1, since_date=None, until_date=None):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/profile/conversations?snType={sn_type}&snUserId={sn_user_id}&start={start}&rows={rows}'
+        if since_date is not None:
+            request_url = request_url + "sinceDate=" + since_date
+        if until_date is not None:
+            request_url = request_url + "untilDate=" + until_date
+        return self.get_request(request_url)
+
+    def profile_custom_field_add(self, data):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/profile/workflow/customProperties'
+        return self.put_request(request_url, data)
+
+    def profile_custom_field_replace(self, data):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/profile/workflow/customProperties'
+        return self.post_request(request_url, data)
+
+    def profile_list_update(self, client_id, data):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/profile/workflow/profileList?clientId={client_id}'
+        return self.post_request(request_url, data)
+
+    def profile_read(self, sn_type, sn_user_id):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/profile?snType={sn_type}&snUserId={sn_user_id}'
+        return self.get_request(request_url)
+
+    def profile_search(self, data):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/profile/search'
+        return self.post_request(request_url, data)
+        #TODO: Build request object
+
+# Profile 2.0
+
+# Publishing 1.0
+    def post_draft_create(self, data):
+        request_url = f'https://api2.sprinklr.com/{{env}}/api/v1/publishing/draft/new'
+        return self.post_request(request_url, data)
+        #TODO: Build request object
+
+    def post_draft_read(self, message_id):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/outbound/drafts?messageIds={message_id}'
+        return self.get_request(request_url)
+
+    def post_draft_update(self, message_id, data):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/publishing/draft/{message_id}'
+        return self.put_request(request_url, data)
+
+    def post_publish(self, data):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/publishing/post'
+        return self.post_request(request_url, data)
+         #TODO: Build request object
+
+# Publishing 2.0
+
+# Reporting 1.0
 
 # Reporting 2.0
 
@@ -766,6 +863,21 @@ class SprinklrClient:
         else:
             return False
   
+# Short URL
+ 
+    def get_client_url_shortners(self):
+        return self.get_resources('CLIENT_URL_SHORTNERS')
+
+    def create_short_url(self, shortner_id, link):
+        request_url = f'https://api2.sprinklr.com/{self.path}api/v1/link/shorten'
+        post_data = {
+            "link": {link},
+            "urlShortnerId": {shortner_id}
+        }
+        return self.post_request(request_url, data=post_data)
+
+# Streams
+
 # Users
     def get_user(self):
         request_url = f'https://api2.sprinklr.com/{self.path}api/v2/me'
@@ -796,19 +908,3 @@ class SprinklrClient:
 
     def get_partner_account_groups(self):
         return self.get_resources('PARTNER_ACCOUNT_GROUPS')
-
-# Paid Initiative
-
-# Product
-
-# Profile 1.0
-
-# Profile 2.0
-
-# Publishing 1.0
-
-# Publishing 2.0
-
-# Reporting 1.0
-
-# Streams
