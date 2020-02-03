@@ -8,48 +8,48 @@ A Python client library (SDK) for interacting with Sprinklr's REST API
 
 - The Case Create & Update, and Asset Search functions are not tested and most likely do not work.
 
-- The Report examples  (other than Audit) will not work as is as they will need customizing to unique customer environments. Follow the example in the [Sprinklr Reporting Widget Tutorial](https://developer.sprinklr.com/docs/read/api_tutorials/Sprinklr_Reporting_Widget_Tutorial), translating values as necessary.
+- The Report examples  (other than Audit) may not work as is as they will need customizing to unique customer environments (filters). Follow the example in the [Sprinklr Reporting Widget Tutorial](https://developer.sprinklr.com/docs/read/api_tutorials/Sprinklr_Reporting_Widget_Tutorial), translating values as necessary.
 
 Here is a list of current supported functions via the test client ([SprinklrClientTest.py](SprinklrClientTest.py)):
 
 ```
 SprinklrClientTest Authorize {apikey} {redirect_uri}
                    AssetSearch [One | Two | Three]
-                   CreateCase
-                   GetAccessToken {apikey} {secret} {code} {redirect uri}
-                   GetAccessibleUsers
-                   GetAccountCustomFields
-                   GetAllDashboards
-                   GetCaseByNumber {case_number}
-                   GetCaseMessagesById {case_id}
-                   GetClients
-                   GetClientProfileLists
-                   GetClientUrlShortners
-                   GetClientUsers
-                   GetDashboardByName {name}
-                   GetDashboardStream {stream_id} {start} {rows} [{echo request} (True or False)]
-                   GetInboundCustomFields
-                   GetListeningTopics
-                   GetListeningStream {id} {sinceTime} {untilTime}
-                   GetMacros
-                   GetMediaAssetCustomFields
-                   GetMessageByIdAndSource {message_id} [ACCOUNT | PERSISTENT_SEARCH | LISTENING | BENCHMARKING | AUDIENCE | AUDIENCE_STUDY]}
-                   GetOutboundCustomFields
-                   GetPartnerAccountGroups
-                   GetPartnerAccounts
-                   GetPartnerCampaigns
-                   GetPartnerUsers
-                   GetPermissions
-                   GetProfileCustomFields
-                   GetReport LOCATION | CATEGORIES | ATTRIBUTES | REVIEWS | AUDIT
-                   GetReportMetrics {Report_Engine} {Report_Type}
-                   GetResources {resource type}
-                   GetUMPriorities
-                   GetUMStatuses
-                   GetUser
-                   GetUserById {User_Id}
-                   GetUserGroups
-                   GetWebhookTypes
+                   CreateCase <-- Probably doesn't work
+                   FetchAccessToken {apikey} {secret} {code} {redirect uri}
+                   FetchAccessibleUsers
+                   FetchAccountCustomFields
+                   FetchAllDashboards
+                   FetchCaseByNumber {case_number}
+                   FetchCaseMessagesById {case_id}
+                   FetchClients
+                   FetchClientProfileLists
+                   FetchClientUrlShortners
+                   FetchClientUsers
+                   FetchDashboardByName {name}
+                   FetchDashboardStream {stream_id} {start} {rows} [{echo request} (True or False)]
+                   FetchInboundCustomFields
+                   FetchListeningTopics
+                   FetchListeningStream {id} {sinceTime} {untilTime}
+                   FetchMacros
+                   FetchMediaAssetCustomFields
+                   FetchMessageByIdAndSource {message_id} [ACCOUNT | PERSISTENT_SEARCH | LISTENING | BENCHMARKING | AUDIENCE | AUDIENCE_STUDY]}
+                   FetchOutboundCustomFields
+                   FetchPartnerAccountGroups
+                   FetchPartnerAccounts
+                   FetchPartnerCampaigns
+                   FetchPartnerUsers
+                   FetchPermissions
+                   FetchProfileCustomFields
+                   FetchReport LOCATION | CATEGORIES | ATTRIBUTES | REVIEWS | AUDIT
+                   FetchReportMetrics {Report_Engine} {Report_Type}
+                   FetchResources {resource type}
+                   FetchUMPriorities
+                   FetchUMStatuses
+                   FetchUser
+                   FetchUserById {User_Id}
+                   FetchUserGroups
+                   FetchWebhookTypes
                    RefreshAccessToken
 
 Please let me know if you are using this library and send feedback to SteveDz@Sprinklr.com - Thanks!
