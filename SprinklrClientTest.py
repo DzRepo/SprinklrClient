@@ -352,7 +352,7 @@ def fetch_report_data_reviews():
 
 def fetch_report_metrics(report_engine, report_name):
     global client
-    process_response(client.fetch_report_metrics(report_engine, report_name))
+    process_response(client.fetch_report_metrics_and_dimensions(report_engine, report_name))
 
 def fetch_webhook_types():
     global client
