@@ -5,12 +5,12 @@ A Python client library (SDK) for interacting with Sprinklr's REST API
 - See the [Generating an Access Token](Sprinklr%20Client%20Library%20-%20Generating%20an%20Access%20Token.pdf) document for directions after registering for a developer account at [Developer.Sprinklr.com](https://developer.sprinklr.com).
 
 - Make sure the Sprinklr.conf file is kept safe! 
- - This file (if the SprinklrClientTest.py app is used) stores API Keys and Access Tokens. With these keys any API call can be made on your behalf. DO NOT under any circumstances upload these files to the public Internet. 
- - BEST PRACTICE: Add *.conf to your .gitignore file
+  - This file (if the SprinklrClientTest.py app is used) stores API Keys and Access Tokens. With these keys any API call can be made on your behalf. DO NOT under any circumstances upload these files to the public Internet. 
+  - BEST PRACTICE: Add *.conf to your .gitignore file
 
-- The Case Create & Update, and Asset Search functions are not tested and most likely do not work.
+- The Case Create & Update, and Asset Search functions have not been tested yet and most likely do not work.
 
-- The Report examples  (other than Audit) may not work as is as they will need customizing to unique customer environments (filters). Follow the example in the [Sprinklr Reporting Widget Tutorial](https://developer.sprinklr.com/docs/read/api_tutorials/Sprinklr_Reporting_Widget_Tutorial), translating values as necessary.
+- The Report examples (other than Audit) may not work as is as they will need customizing to unique customer environments (filters). Follow the example in the [Sprinklr Reporting Widget Tutorial](https://developer.sprinklr.com/docs/read/api_tutorials/Sprinklr_Reporting_Widget_Tutorial), translating values as necessary.
 
 Here is a list of current supported functions via the test client ([SprinklrClientTest.py](SprinklrClientTest.py)):
 
