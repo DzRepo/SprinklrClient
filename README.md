@@ -4,7 +4,9 @@ A Python client library (SDK) for interacting with Sprinklr's REST API
 **Notes:**
 - See the [Generating an Access Token](Sprinklr%20Client%20Library%20-%20Generating%20an%20Access%20Token.pdf) document for directions after registering for a developer account at [Developer.Sprinklr.com](https://developer.sprinklr.com).
 
-- Make sure the Sprinklr.conf file is kept safe!
+- Make sure the Sprinklr.conf file is kept safe! 
+ - This file (if the SprinklrClientTest.py app is used) stores API Keys and Access Tokens. With these keys any API call can be made on your behalf. DO NOT under any circumstances upload these files to the public Internet. 
+ - BEST PRACTICE: Add *.conf to your .gitignore file
 
 - The Case Create & Update, and Asset Search functions are not tested and most likely do not work.
 
