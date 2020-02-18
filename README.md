@@ -8,7 +8,7 @@ A Python client library (SDK) for interacting with Sprinklr's REST API
   - This file (if the SprinklrClientTest.py app is used) stores API Keys and Access Tokens. With these keys any API call can be made on your behalf. DO NOT under any circumstances upload these files to the public Internet. 
   - BEST PRACTICE: Add *.conf to your .gitignore file
 
-- The Case Create & Update, and Asset Search functions have not been tested yet and most likely do not work.
+- The Case Create & Update, and Asset Search functions have not been tested yet and may not work.
 
 - The Report examples (other than Audit) may not work as is as they will need customizing to unique customer environments (filters). Follow the example in the [Sprinklr Reporting Widget Tutorial](https://developer.sprinklr.com/docs/read/api_tutorials/Sprinklr_Reporting_Widget_Tutorial), translating values as necessary.
 
