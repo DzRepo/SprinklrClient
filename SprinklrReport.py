@@ -20,11 +20,11 @@ class ReportBuilder:
         self.last_error = None
 
     def set_engine(self, engine_name):
-        if engine_name.upper() in {"AD", "PLATFORM", "INBOUND_MESSAGE", "LISTENING"}:
-            self.engine = engine_name.upper()
-            return True
-        else:
-            return False
+        # if engine_name.upper() in {"AD", "PLATFORM", "INBOUND_MESSAGE", "LISTENING"}:
+        self.engine = engine_name.upper()
+        return True
+        #else:
+        #    return False
 
     def set_name(self, name):
         self.name = name

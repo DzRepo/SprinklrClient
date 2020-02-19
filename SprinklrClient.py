@@ -345,9 +345,9 @@ class SprinklrClient:
 
 # Audit
 
-    def fetch_audit(self):
+    def fetch_audit(self, request):
         request_url = f'https://api2.sprinklr.com/{self.path}api/v1/audit/fetch'
-        return self.get_request(request_url)
+        return self.post_request(request_url, request)
 
 # Bootstrap
     def fetch_partner_campaigns(self):
@@ -852,7 +852,10 @@ class SprinklrClient:
         request_url = f'https://api2.sprinklr.com/{self.path}api/v2/search/{entity_type}'
 
         request_data = \
-            {"filter": filter,
+            {"filter": {
+                "type": filter.type,
+                "filters":filter.filters
+            },
              "sort": {
                  "key": sort_key,
                  "order": sort_order
@@ -861,7 +864,11 @@ class SprinklrClient:
                  'size': page_size
                 }
              }
-        if (self.post_request(request_url, request_data)):
+        
+        print("Seach URL:", request_url)
+        print("Search Request:", json.dumps(request_data, indent=4))
+
+        if (self.post_request(request_url, data=request_data)):
             self.search_cursor = self.result["data"]["cursor"]
         else:
              self.search_cursor = None
