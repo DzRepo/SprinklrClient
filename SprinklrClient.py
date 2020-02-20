@@ -24,6 +24,7 @@ class SprinklrClient:
         self.key = key
         self.raw = None
         self.search_cursor = None
+        self.path = path
         # current valid path options are (None), prod0, prod2, or sandbox
         if path is not None:
             if path.endswith("/"):
@@ -33,7 +34,8 @@ class SprinklrClient:
         else:
             self.path = ""
         logging.info("Client initialized. Path is |" + self.path + "|")
-        
+        logging.info("Client initialized. Path without self is |" + path + "|")
+
 # HTTP Methods
     def delete_request(self, request_url: str, data = None):
         """
@@ -226,10 +228,11 @@ class SprinklrClient:
 # Authorize
     # this endpoint only returns the URL used to start the authorization process. It does not invoke the web-browser required workflow.
     def authorize(self, api_key, redirect_uri):
+        print("self.path+++++++", self.path)
         request_url = f'https://api2.sprinklr.com/{self.path}oauth/authorize?client_id={api_key}&response_type=code&redirect_uri={redirect_uri}'
         return request_url
 
-    # using the secret key and 'code' returned from the authoize process, retrieve the access and refresh tokens        
+    # using the secret key and 'code' returned from the authoize process, retrieve the access and refresh tokens
     def fetch_access_token(self, secret="", redirect_uri='', code=""):
             """
                     Get Access Token based on code returned via authorization process
@@ -268,7 +271,7 @@ class SprinklrClient:
         request_url = f'https://api2.sprinklr.com/{self.path}oauth/token?client_id={api_key}&client_secret={secret}&redirect_uri={redirect_uri}&grant_type=refresh_token&refresh_token={refresh_token}'
         headers = {'Content-Type': 'Application/x-www-form-urlencoded'}
         response = requests.post(url=request_url, headers=headers)
-        
+
         self.status_code = response.status_code
 
         if response.status_code == HTTP_OK:
@@ -283,15 +286,15 @@ class SprinklrClient:
         return response.status_code == HTTP_OK
 
 # Assets 1.0
-    
+
     def create_asset(self, asset_data):
         request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam'
-        return self.post_request(request_url, data=asset_data)   
+        return self.post_request(request_url, data=asset_data)
 
     def delete_asset(self, asset_id):
         request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/{asset_id}'
         return self.delete_request(request_url, None)
-    
+
     def import_asset(self, import_type, url, upload_tracker_id):
         request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/importUrl?importType={import_type}&url={url}&uploadTrackerId={upload_tracker_id}'
         return self.post_request(request_url, None)
@@ -312,14 +315,14 @@ class SprinklrClient:
             "rows":rows
         }
         return requests.post(request_url, data=request)
-   
-    def update_asset(self, asset_id, name, description, asset_status, expiry_time, available_after_time, 
+
+    def update_asset(self, asset_id, name, description, asset_status, expiry_time, available_after_time,
                      tags, share_config, campaign_id, partner_custom_fields, client_custom_properties, restricted=None):
         request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/{asset_id}'
         data = {}
         return self.put_request(request_url, data)
-    
-    # TODO: File upload - may nead to alter post to or pull in single instance version    
+
+    # TODO: File upload - may nead to alter post to or pull in single instance version
     def asset_upload(self, content_type, upload_tracker_id, file_name):
         request_url = f'https://api2.sprinklr.com/{self.path}api/v1/sam/upload?contentType={content_type}&uploadTrackerId={upload_tracker_id}'
         data = {}
@@ -356,7 +359,7 @@ class SprinklrClient:
     def fetch_webhook_types(self):
         request_url = f"https://api2.sprinklr.com/{self.path}api/v2/webhook-subscriptions/webhook-types"
         return self.get_request(request_url)
-  
+
     def fetch_resources(self, types):
 
         request_url = f"https://api2.sprinklr.com/{self.path}api/v1/bootstrap/resources?types={types}"
@@ -466,7 +469,7 @@ class SprinklrClient:
     def fetch_case_by_channel_case_number(self, chanel_case_number):
         request_url = f'https://api2.sprinklr.com/{self.path}api/v2/case/channel-case-numbers?channelCaseNumbers={chanel_case_number}'
         return self.get_request(request_url, returns_json=True)
-    
+
     def fetch_case_by_case_id(self, case_id):
         request_url = f'https://api2.sprinklr.com/{self.path}api/v2/case/{case_id}'
         return self.get_request(request_url, returns_json=True)
@@ -533,7 +536,7 @@ class SprinklrClient:
         """
         request_url = f'https://api2.sprinklr.com/{self.path}api/v1/dashboards'
         return self.get_request(request_url)
-        
+
     def fetch_dashboard_by_name(self, dashboard_name: str):
         """
         request dashboard data by name
@@ -609,7 +612,7 @@ class SprinklrClient:
 
         logging.info("Calling get_listening_topics")
         return self.get_request(request_url)
-        
+
     def fetch_listening_stream(self, filter_value, since_time, until_time, timezone_offset=14400000,
                                 time_field="SN_CREATED_TIME", details="STREAM", dimension="TOPIC",
                                 metric="MENTIONS", trend_aggregation_period=None, start=1, rows=100,
@@ -813,7 +816,7 @@ class SprinklrClient:
     def fetch_report(self, data):
         request_url = f' https://api2.sprinklr.com/{self.path}api/v1/reports/query'
         return self.post_request(request_url, data)
-    
+
     def fetch_report_custom_metrics(self, report_engine):
         request_url = f'https://api2.sprinklr.com/{self.path}api/v1/reports/customMetric/{report_engine}'
         return self.get_request(request_url)
@@ -832,7 +835,7 @@ class SprinklrClient:
         request_url = f'https://api2.sprinklr.com/{self.path}api/v2/reports/query'
         return self.post_request(request_url, data)
 
-    
+
 # SAM
 
 # Search
@@ -871,7 +874,7 @@ class SprinklrClient:
 
     def search_campaign_next(self):
         return self.search_next_page("CAMPAIGN")
-        
+
     def search_case(self, filter,  sort_order = 'ASC', sort_key='id', page_size = 20):
         return self.search_entity('CASE', filter, sort_order, sort_key, page_size)
 
@@ -896,9 +899,9 @@ class SprinklrClient:
             return self.get_request(request_url)
         else:
             return False
-  
+
 # Short URL
- 
+
     def fetch_client_url_shortners(self):
         return self.fetch_resources('CLIENT_URL_SHORTNERS')
 
@@ -920,7 +923,7 @@ class SprinklrClient:
     def fetch_user_by_id(self, user_id):
         request_url = f'https://api2.sprinklr.com/{self.path}api/v1/scim/v2/Users/{user_id}'
         return self.get_request(request_url)
-        
+
     def fetch_user_groups(self):
         return self.fetch_resources('USER_GROUPS')
 

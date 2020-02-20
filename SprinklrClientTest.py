@@ -190,7 +190,7 @@ def fetch_report_data_location_analyisis():
 
     rb.set_engine("LISTENING")
     rb.set_name("SPRINKSIGHTS")
-    
+
     rb.set_start_time(datetime_toepoch(2018, 9, 6, 0, 0))
     rb.set_end_time(datetime_toepoch(2019, 9, 5, 11, 59))
     rb.set_time_zone("America/Denver")
@@ -225,14 +225,14 @@ def fetch_report_user_audit():
 
     rb.set_engine("PLATFORM")
     rb.set_name("USER_AVAILABILITY_REPORT")
-    
+
     rb.set_start_time(datetime_toepoch(2019, 12, 1, 0, 0))
     rb.set_end_time(datetime_toepoch(2019, 12, 13, 11, 59))
     rb.set_time_zone("America/Denver")
     rb.set_page_size(100)
     rb.set_page(0)
-    
-    # one_day_details = 
+
+    # one_day_details =
     rb.add_group_by("Date", "ACTION_TIME", "FIELD", {"interval": "1m"} )
     rb.add_group_by("User", "USER_ID", "FIELD")
 #    rb.add_group_by("User Group", "USER_GROUP_ID", "FIELD")
@@ -252,7 +252,7 @@ def fetch_report_data_attibutes():
 
     rb.set_engine("LISTENING")
     rb.set_name("SPRINKSIGHTS")
-    
+
     rb.set_start_time(datetime_toepoch(2018, 9, 6, 0, 0))
     rb.set_end_time(datetime_toepoch(2019, 9, 5, 11, 59))
     rb.set_time_zone("America/Denver")
@@ -286,7 +286,7 @@ def fetch_report_data_subject_categories():
 
     rb.set_engine("LISTENING")
     rb.set_name("SPRINKSIGHTS")
-    
+
     rb.set_start_time(datetime_toepoch(2018, 9, 6, 0, 0))
     rb.set_end_time(datetime_toepoch(2019, 9, 15, 12, 59))
     rb.set_time_zone("America/Denver")
@@ -320,7 +320,7 @@ def fetch_report_data_reviews():
 
     rb.set_engine("LISTENING")
     rb.set_name("SPRINKSIGHTS")
-    
+
     rb.set_start_time(datetime_toepoch(2018, 9, 6, 0, 0))
     rb.set_end_time(datetime_toepoch(2019, 9, 15, 12, 59))
     rb.set_time_zone("America/Denver")
@@ -328,14 +328,14 @@ def fetch_report_data_reviews():
     rb.set_page(0)
 
     rb.add_column("Avg. of Experience Score", "NLP_DOC_POLARITY_SCORE","AVG")
-    
+
     rb.add_group_by("Message", "ES_MESSAGE_ID","FIELD")
     rb.add_group_by("Location IDs", "LOCATION_IDS", "FIELD", {"missing": 0})
     rb.add_group_by("Created Time", "SN_CREATED_TIME", "DATE_HISTOGRAM", {
                                                 "interval": "1M"
                                             })
     rb.add_group_by("Star Rating", "STAR_RATING", "FIELD", {"missing": 0})
-    
+
     rb.add_filter("IN", "HIERARCHY_ID", ["5c484387e4b0e6a8e58d17b2"],{
                         "contentType": "DB_FILTER",
                         "ASSET_CLASS": "INTEL_LOCATION",
@@ -357,7 +357,7 @@ def fetch_report_metrics(report_engine, report_name):
 def fetch_webhook_types():
     global client
     process_response(client.fetch_webhook_types())
- 
+
 
 def asset_search_one():
 #    global client
@@ -374,7 +374,7 @@ def create_case():
     global client
     case = sc.CaseCreate()
     now_as_epoch = date_time_toepoch(datetime.datetime.now())
-    
+
     workflow = case.Workflow()
     workflow.add_queue(case.Workflow.Queue(123, now_as_epoch))
     workflow.assignment = case.Workflow.Assignment("123", "USER", 123, now_as_epoch)
@@ -384,10 +384,10 @@ def create_case():
     space_workflow.add_queue("123", now_as_epoch)
     space_workflow.add_custom_field("CustomField1", "custom_field_1")
     workflow.add_space_workflow(space_workflow)
-    
+
     case_attachment = case.Attachment("IMAGE")
     case_attachment.add_option(case.Attachment.Attachment_Option("TWITTER", 1))
-    
+
     case.id = "12345"
     case.case_number = 12345
     case.subject = "A case Opened via API"
@@ -403,7 +403,7 @@ def create_case():
     case.summary = "A new case created via API"
     case.created_time = now_as_epoch
     case.modified_time = now_as_epoch
-    case.first_message_id = 123 
+    case.first_message_id = 123
     case.workflow = workflow
 
     client.create_case(case)
@@ -452,7 +452,7 @@ def process_response(success):
                     print(json.dumps(client.result, sort_keys=False, indent=4))
                 else:
                     print(client.result)
-            else: 
+            else:
                 print(client.status_message)
     except Exception as ex:
         logging.error(str(ex))
@@ -530,6 +530,7 @@ def main():
                     key = sys.argv[2]
                     redirect_uri = sys.argv[3]
                     client = sc.SprinklrClient(key)
+
                     authorize(key, redirect_uri)
             elif command == 'ASSETSEARCH':
                 if len(sys.argv) != 3:
@@ -567,6 +568,7 @@ def main():
                         settings.set('redirect_uri', redirect)
                         settings.set('key', key)
                         settings.set('secret', secret)
+                        settings.set('path', path)
                         settings.save()
                         print("Success")
                     else:
@@ -633,7 +635,7 @@ def main():
                 elif sys.argv[2].upper() == "CATEGORIES":
                     fetch_report_data_subject_categories()
                 elif sys.argv[2].upper() == "ATTRIBUTES":
-                    fetch_report_data_attibutes() 
+                    fetch_report_data_attibutes()
                 elif sys.argv[2].upper() == "REVIEWS":
                     fetch_report_data_reviews()
                 elif sys.argv[2].upper() == "AUDIT":
@@ -683,6 +685,6 @@ def main():
     except Exception as ex:
         print("Error:" + str(ex))
         print_usage()
-        
+
 if __name__ == "__main__":
     main()
