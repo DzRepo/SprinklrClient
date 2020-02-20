@@ -134,6 +134,7 @@ class SprinklrClient:
                    'cache-control': 'no-cache'}
 
         logging.info("Posting to URL:" + request_url)
+        logging.debug("Headers:" + str(headers))
         logging.debug("Data Being Posted:" + str(data))
 
         try:
@@ -832,7 +833,6 @@ class SprinklrClient:
         request_url = f'https://api2.sprinklr.com/{self.path}api/v2/reports/query'
         return self.post_request(request_url, data)
 
-    
 # SAM
 
 # Search

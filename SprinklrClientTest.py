@@ -82,7 +82,7 @@ def fetch_listening_topics():
     process_response(client.fetch_listening_topics())
 
 
-def fetch_listening_stream(filter_value, since_time, until_time, timezone_offset=14400000, time_field="SN_CREATED_TIME",
+def fetch_listening_stream(filter_value, since_time, until_time, timezone_offset=14400000,  time_field="SN_CREATED_TIME",
                            details="STREAM", dimension="TOPIC", metric="MENTIONS", trend_aggregation_period=None, start=1,
                            rows=100, echo_request=False, tag=None, sort_key=None, message_format_options=None):
     global client
@@ -210,18 +210,6 @@ def fetch_permissions():
 def fetch_user_groups():
     global client
     process_response(client.fetch_user_groups())
-
-
-def date_time_toepoch(date_time):
-    return datetime_toepoch(date_time.year, date_time.month, date_time.day, date_time.hour, date_time.minute)
-
-
-def datetime_toepoch(year: int, month: int, day: int, hour=0, minute=0):
-    return int(float(time.mktime(datetime.datetime(year, month, day, hour, minute).timetuple())) * 1000)
-
-
-def datetime_fromepoch(epoch):
-    time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(1347517491))
 
 
 def fetch_report_data_location_analyisis():
@@ -404,9 +392,9 @@ def fetch_report_metrics(report_engine, report_name):
         report_engine, report_name))
 
 
-def fetch_case_audit():
+def fetch_case_audit(flag):
     global client
-
+    raw = (flag.upper() == "TRUE")
     rb = sc.ReportBuilder()
     rb.set_engine("PLATFORM")
     rb.set_name("CaseSLAReport")
@@ -418,34 +406,52 @@ def fetch_case_audit():
     rb.add_group_by("Case ID", "CASE_ID", "FIELD")
     rb.add_filter("IN", "ARCHIVE", ["true"])
 
+    audit_request = {
+        "assetIds": [],
+        "assetClass": "UNIVERSAL_CASE",
+        "ascending": "false",
+        "limit": 1000
+    }
     if rb.build_report_request():
-        print("Report request:")
-        print(rb.request)
+        if not raw:
+            print("Report request:")
+            print(rb.request)
         if client.fetch_report(rb.request):
             cases = client.result
-            for case_id in cases["rows"]:
-                if client.fetch_case_by_case_id(case_id[0]):
-                    case = client.result["data"]
-                    print("Case Id:", case_id[0], " - Case Number:", case["caseNumber"])
-                    audit_request = {
-                        "assetIds": [
-                            case["caseNumber"]
-                        ],
-                        "assetClass": "UNIVERSAL_CASE",
-                        "ascending": "false",
-                        "limit": 100
-                    }
-                    if client.fetch_audit(audit_request):
-                        print(json.dumps(client.result, indent=4))
+            if "rows" in cases:
+                if not raw:
+                    print(json.dumps(cases, indent=4))
+                    print("Cases Returned:", str(len(cases["rows"])))
+                for case_id in cases["rows"]:
+                    if client.fetch_case_by_case_id(case_id[0]):
+                        case = client.result["data"]
+                        audit_request["assetIds"].append(case["caseNumber"])
+                        if not raw:
+                            print("Case Id:", case_id[0], " - Case Number:", case["caseNumber"])
+                if not raw:
+                    print("Audit Request:", json.dumps(audit_request, indent=4))
+
+                if client.fetch_audit(audit_request):
+                    audit_records = client.result
+                    if raw:
+                        print(json.dumps(audit_records, indent=4))
                     else:
-                        print("audit request failed")
+                        print("Number of change records returned:",str(len(audit_records["data"])))
+
+                    for audit in audit_records["data"]:
+                        if not raw:
+                            print("Case:", audit["assetId"], " DateTime:", datetime_fromepoch(
+                            audit["changeDate"]/1000), " Number of field changes:", str(len(audit["changes"])))
+                else:
+                    print("audit request failed", client.raw)
+            else:
+                print("No cases returned", client.raw)
         else:
-            print("Error executing request")
+            print("Error executing request", client.raw)
     else:
         print("Error building request:", rb.last_error)
 
-# This doesn't work for now.
-def fetch_case_audit_by_search():
+def fetch_archived_cases():
     filter = {"query": "",
               "filters": [
                   {
@@ -455,26 +461,23 @@ def fetch_case_audit_by_search():
                   },
                   {
                       "filterType": "IN",
-                      "dimensionName": "ARCHIVE",
-                      "values": [
-                          "true"
-                      ],
-                      "details": {}
+                      "field": "archived",
+                      "values": ["true"]
                   }
               ],
               "paginationInfo": {
                   "start": 0,
-                  "rows": 1,
+                  "rows": 100,
                   "sortKey":
                   "caseModificationTime"
               }}
 
     if client.search_case_v1(filter):
         cases = client.result
-        for case in cases["searchResults"]:
-            print(case['universalCaseApiDTO']['id'])
-            exit()
-            # print(case["id"], " ", case["description"])
+        print(json.dumps(cases))
+        #for case in cases["searchResults"]:
+        #    print(case['universalCaseApiDTO']['id'])
+        #    # print(case["id"], " ", case["description"])
     else:
         print("Search Failed:", client.raw)
 
@@ -550,6 +553,11 @@ def fetch_message_by_id_and_source(message_id, source_type):
         message_id, source_type))
 
 
+def fetch_message_by_umid(umid):
+    global client
+    process_response(client.fetch_message_by_UMID(umid))
+
+
 def fetch_case_messages(case_id):
     global client
     process_response(client.fetch_case_associated_messages(case_id))
@@ -567,6 +575,18 @@ def fetch_user_by_id(user_id):
 # def search_entity(entity_type, filter, sort, key, order='ASC')
 
 
+def date_time_toepoch(date_time):
+    return datetime_toepoch(date_time.year, date_time.month, date_time.day, date_time.hour, date_time.minute)
+
+
+def datetime_toepoch(year: int, month: int, day: int, hour=0, minute=0):
+    return int(float(time.mktime(datetime.datetime(year, month, day, hour, minute).timetuple())) * 1000)
+
+
+def datetime_fromepoch(epoch):
+    return time.strftime('%Y-%m-%d %H:%M:%S:{0:.0f}'.format(epoch%1000), time.localtime(epoch))
+    
+
 def process_response(success):
     try:
         logging.debug("Success:" + str(success))
@@ -577,7 +597,7 @@ def process_response(success):
                 print(client.status_message)
             else:
                 logging.debug("Result Type:" + str(type(client.result)))
-                #logging.debug("Result:" + str(client.result))
+                # logging.debug("Result:" + str(client.result))
                 if type(client.result) is dict or type(client.result) is list:
                     print(json.dumps(client.result, sort_keys=False, indent=4))
                 else:
@@ -606,12 +626,14 @@ def print_usage():
     print("                   FetchAccessibleUsers")
     print("                   FetchAccountCustomFields")
     print("                   FetchAllDashboards")
+    print("                   FetchArchivedCases")
     print("                   FetchCaseByNumber {case_number}")
     print("                   FetchCaseMessagesById {case_id}")
-    print("                   FetchCaseAudit")
+    print("                   FetchCaseAudit {raw_flag}")
     print("                   FetchClients")
     print("                   FetchClientProfileLists")
     print("                   FetchClientUrlShortners")
+    print("                   FetchClientQueues")
     print("                   FetchClientUsers")
     print("                   FetchDashboardByName {name}")
     print(
@@ -624,10 +646,12 @@ def print_usage():
     print("                   FetchMediaAssetCustomFields")
     print(
         "                   FetchMessageByIdAndSource {message_id} [ACCOUNT | PERSISTENT_SEARCH | LISTENING | BENCHMARKING | AUDIENCE | AUDIENCE_STUDY]}")
+    print("                   FetchMessageByUMId {message_id}")
     print("                   FetchOutboundCustomFields")
     print("                   FetchPartnerAccountGroups")
     print("                   FetchPartnerAccounts")
     print("                   FetchPartnerCampaigns")
+    print("                   FetchPartnerQueues")
     print("                   FetchPartnerUsers")
     print("                   FetchPermissions")
     print("                   FetchProfileCustomFields")
@@ -699,15 +723,16 @@ def main():
             elif command == 'FETCHACCESSTOKEN':
                 if len(sys.argv) != 6:
                     print(
-                        "Invalid command line - Usage: SprinklrClientTest GetAccessToken {apikey} {secret} "
+                        "Invalid command line - Usage: SprinklrClientTest GetAccessToken {path} {apikey} {secret} "
                         "{code} {redirect URI}")
                 else:
-                    key = sys.argv[2]
-                    secret = sys.argv[3]
-                    code = sys.argv[4]
-                    redirect = sys.argv[5]
+                    path = sys.argv[2]
+                    key = sys.argv[3]
+                    secret = sys.argv[4]
+                    code = sys.argv[5]
+                    redirect = sys.argv[6]
 
-                    client = sc.SprinklrClient(key)
+                    client = sc.SprinklrClient(key, path)
                     success = client.fetch_access_token(
                         secret=secret, code=code, redirect_uri=redirect)
 
@@ -717,6 +742,7 @@ def main():
                         settings.set('redirect_uri', redirect)
                         settings.set('key', key)
                         settings.set('secret', secret)
+                        settings.set('path', path),
                         settings.save()
                         print("Success")
                     else:
@@ -731,7 +757,9 @@ def main():
             elif command == 'FETCHACCOUNTCUSTOMFIELDS':
                 fetch_account_custom_fields()
             elif command == 'FETCHCASEAUDIT':
-                fetch_case_audit()
+                fetch_case_audit(sys.argv[2])
+            elif command == 'FETCHARCHIVEDCASES':
+                fetch_archived_cases()
             elif command == "FETCHCASEBYNUMBER":
                 fetch_case_by_number(sys.argv[2])
             elif command == "FETCHCASEMESSAGESBYID":
@@ -742,6 +770,8 @@ def main():
                 fetch_client_profile_lists()
             elif command == "FETCHCLIENTURLSHORTNERS":
                 fetch_client_url_shortners()
+            elif command == 'FETCHCLIENTQUEUES':
+                fetch_client_queues()
             elif command == 'FETCHCLIENTUSERS':
                 fetch_client_users()
             elif command == 'FETCHDASHBOARDBYNAME':
@@ -769,6 +799,8 @@ def main():
                 fetch_media_asset_custom_fields()
             elif command == 'FETCHMESSAGEBYIDANDSOURCE':
                 fetch_message_by_id_and_source(sys.argv[2], sys.argv[3])
+            elif command == 'FETCHMESSAGEBYUMID':
+                fetch_message_by_umid(sys.argv[2])
             elif command == 'FETCHOUTBOUNDCUSTOMFIELDS':
                 fetch_outbound_custom_fields()
             elif command == 'FETCHPARTNERACCOUNTGROUPS':
@@ -777,6 +809,8 @@ def main():
                 fetch_partner_accounts()
             elif command == 'FETCHPARTNERCAMPAIGNS':
                 fetch_partner_campaigns()
+            elif command == 'FETCHPARTNERQUEUES':
+                fetch_partner_queues()
             elif command == 'FETCHPARTNERUSERS':
                 fetch_partner_users()
             elif command == 'FETCHPERMISSIONS':
