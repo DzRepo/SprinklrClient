@@ -1,3 +1,5 @@
+#! /usr/bin/python3
+
 import SprinklrClient as sc
 import json
 from easysettings import EasySettings
@@ -14,10 +16,12 @@ import logging
 client = None
 settings = None
 
-def authorize(api_key, redirect_uri):
+
+def authorize(api_key, redirect_uri, path=None):
     global client
-    url = client.authorize(api_key, redirect_uri)
+    url = client.authorize(api_key, redirect_uri, path)
     wb.open(url, new=2)
+
 
 def fetch_access_token(code):
     logging.info("fetch_access_token called")
@@ -26,7 +30,8 @@ def fetch_access_token(code):
     secret = settings.get('secret')
     redirect = settings.get('redirect')
 
-    success = client.fetch_access_token(secret=secret, redirect_uri=redirect, code=code)
+    success = client.fetch_access_token(
+        secret=secret, redirect_uri=redirect, code=code)
 
     if not success:
         logging.error(client.status_message)
@@ -34,13 +39,15 @@ def fetch_access_token(code):
             j_result = json.loads(client.status_message)
             print("Error: ", json.dumps(j_result, indent=4, sort_keys=True))
 
+
 def refresh_access_token():
     global client
     secret = settings.get('secret')
     redirect = settings.get('redirect')
     code = settings.get('code')
 
-    success = client.fetch_access_token(secret=secret, redirect_uri=redirect, code=code)
+    success = client.fetch_access_token(
+        secret=secret, redirect_uri=redirect, code=code)
 
     if success:
         print("Encoding:", client.encoding)
@@ -53,136 +60,157 @@ def refresh_access_token():
             j_result = json.loads(client.status_message)
             print("Error: ", json.dumps(j_result, indent=4, sort_keys=True))
 
+
 def fetch_all_dashboards():
     global client
     process_response(client.fetch_all_dashboards())
+
 
 def fetch_dashboard_by_name(dashboard_name):
     global client
     process_response(client.fetch_dashboard_by_name(dashboard_name))
 
+
 def fetch_dashboard_stream(dashboard_id, start, rows):
     global client
-    process_response(client.fetch_dashboard_stream(dashboard_id=dashboard_id, start=start, rows=rows))
+    process_response(client.fetch_dashboard_stream(
+        dashboard_id=dashboard_id, start=start, rows=rows))
+
 
 def fetch_listening_topics():
     global client
     process_response(client.fetch_listening_topics())
 
-def fetch_listening_stream(filter_value, since_time, until_time, timezone_offset=14400000, time_field="SN_CREATED_TIME",
-                         details="STREAM", dimension="TOPIC", metric="MENTIONS", trend_aggregation_period=None, start=1,
-                         rows=100, echo_request=False, tag=None, sort_key=None, message_format_options=None):
+
+def fetch_listening_stream(filter_value, since_time, until_time, timezone_offset=14400000,  time_field="SN_CREATED_TIME",
+                           details="STREAM", dimension="TOPIC", metric="MENTIONS", trend_aggregation_period=None, start=1,
+                           rows=100, echo_request=False, tag=None, sort_key=None, message_format_options=None):
     global client
 
     process_response(client.fetch_listening_stream(filter_value, since_time, until_time, timezone_offset, time_field,
-                                          details, dimension, metric, trend_aggregation_period, start,
-                                          rows, echo_request, tag, sort_key, message_format_options))
+                                                   details, dimension, metric, trend_aggregation_period, start,
+                                                   rows, echo_request, tag, sort_key, message_format_options))
+
 
 def fetch_resources(types):
     global client
     process_response(client.fetch_resources(types))
 
+
 def fetch_partner_accounts():
     global client
     process_response(client.fetch_partner_accounts())
+
 
 def fetch_partner_campaigns():
     global client
     process_response(client.fetch_partner_campaigns())
 
+
 def fetch_partner_account_groups():
     global client
     process_response(client.fetch_partner_campaigns())
+
 
 def fetch_partner_users():
     global client
     process_response(client.fetch_partner_users())
 
+
 def fetch_client_users():
     global client
     process_response(client.fetch_client_queues())
+
 
 def fetch_clients():
     global client
     process_response(client.fetch_clients())
 
+
 def fetch_client_url_shortners():
     global client
     process_response(client.fetch_client_url_shortners())
+
 
 def fetch_inbound_custom_fields():
     global client
     process_response(client.fetch_inbound_custom_fields())
 
+
 def fetch_outbound_custom_fields():
     global client
     process_response(client.fetch_outbound_custom_fields())
+
 
 def fetch_profile_custom_fields():
     global client
     process_response(client.fetch_profile_custom_fields())
 
+
 def fetch_media_asset_custom_fields():
     global client
     process_response(client.fetch_media_asset_custom_fields())
+
 
 def fetch_account_custom_fields():
     global client
     process_response(client.fetch_account_custom_fields())
 
+
 def fetch_um_statuses():
     global client
     process_response(client.fetch_um_statuses())
+
 
 def fetch_um_priorities():
     global client
     process_response(client.fetch_um_priorities())
 
+
 def fetch_accessible_users():
     global client
     process_response(client.fetch_accessible_users())
+
 
 def fetch_approval_paths():
     global client
     process_response(client.fetch_approval_paths())
 
+
 def fetch_partner_queues():
     global client
     process_response(client.fetch_partner_queues())
+
 
 def fetch_client_queues():
     global client
     process_response(client.fetch_client_queues())
 
+
 def fetch_partner_profile_lists():
     global client
     process_response(client.fetch_partner_profile_lists())
 
+
 def fetch_client_profile_lists():
     global client
-    success = client.fetch_client_profile_lists()
-    process_response(success)
+    process_response(client.fetch_client_profile_lists())
+
 
 def fetch_macros():
     global client
     process_response(client.fetch_macros())
 
+
 def fetch_permissions():
     global client
     process_response(client.fetch_permissions())
+
 
 def fetch_user_groups():
     global client
     process_response(client.fetch_user_groups())
 
-def date_time_toepoch(date_time : datetime.datetime):
-    return datetime_toepoch(date_time.year, date_time.month, date_time.day, date_time.hour, date_time.minute)
-
-def datetime_toepoch(year : int, month : int, day : int, hour=0, minute=0):
-    return int(float(time.mktime(datetime.datetime(year, month, day, hour,minute).timetuple())) * 1000)
-
-def datetime_fromepoch(epoch):
-    time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(epoch))
 
 def fetch_report_data_location_analyisis():
     global client
@@ -197,27 +225,29 @@ def fetch_report_data_location_analyisis():
     rb.set_page_size(50)
     rb.set_page(0)
 
-    rb.add_column("Avg. of Experience Score", "NLP_INSIGHT_POLARITY_SCORE","AVG")
-    rb.add_column("Avg. of Star Rating","STAR_RATING","AVG")
-    rb.add_column("Insights","NLP_DOC_INSIGHT_COUNT","SUM")
+    rb.add_column("Avg. of Experience Score",
+                  "NLP_INSIGHT_POLARITY_SCORE", "AVG")
+    rb.add_column("Avg. of Star Rating", "STAR_RATING", "AVG")
+    rb.add_column("Insights", "NLP_DOC_INSIGHT_COUNT", "SUM")
 
     rb.add_group_by("Location", "LOCATION_IDS", "FIELD")
 
     rb.add_filter("IN", "LOCATION_CUSTOM_PROPERTY", ["Hyatt"], {
                         "srcType": "CUSTOM",
                         "fieldName": "5ce45bf5e4b0a645c7d3e18a"
-                    })
-    rb.add_filter("IN", "HIERARCHY_ID", ["5c484387e4b0e6a8e58d17b2"],{
+    })
+    rb.add_filter("IN", "HIERARCHY_ID", ["5c484387e4b0e6a8e58d17b2"], {
                         "contentType": "DB_FILTER",
                         "ASSET_CLASS": "INTEL_LOCATION",
                         "withAssetLevel": True,
                         "withDimension": True
-                    })
+    })
 
     if rb.build_report_request():
         process_response(client.fetch_report(rb.request))
     else:
         print("Error building request:", rb.last_error)
+
 
 def fetch_report_user_audit():
     global client
@@ -233,18 +263,22 @@ def fetch_report_user_audit():
     rb.set_page(0)
 
     # one_day_details =
-    rb.add_group_by("Date", "ACTION_TIME", "FIELD", {"interval": "1m"} )
+
+    rb.add_group_by("Date", "ACTION_TIME", "FIELD", {"interval": "1D"})
+    
     rb.add_group_by("User", "USER_ID", "FIELD")
 #    rb.add_group_by("User Group", "USER_GROUP_ID", "FIELD")
     rb.add_group_by("Status", "LOGIN_CURRENT_STATUS", "FIELD")
     rb.add_group_by("IP Address", "IP_ADDRESS", "FIELD")
 
-    rb.add_column("Session Length", "loggedInSession","SUM")
+    rb.add_column("Session Length", "loggedInSession", "SUM")
 
     if rb.build_report_request():
+        print(json.dumps(rb.request, sort_keys=False, indent=4))
         process_response(client.fetch_report(rb.request))
     else:
         print("Error building request:", rb.last_error)
+
 
 def fetch_report_data_attibutes():
     global client
@@ -259,26 +293,28 @@ def fetch_report_data_attibutes():
     rb.set_page_size(50)
     rb.set_page(0)
 
-    rb.add_column("Average of Experience Score","NLP_INSIGHT_POLARITY_SCORE","AVG")
+    rb.add_column("Average of Experience Score",
+                  "NLP_INSIGHT_POLARITY_SCORE", "AVG")
 
     rb.add_group_by("Category", "LTS_OC", "FIELD")
-    rb.add_group_by("Location", "LOCATION_IDS","FIELD")
+    rb.add_group_by("Location", "LOCATION_IDS", "FIELD")
 
     rb.add_filter("IN", "LOCATION_CUSTOM_PROPERTY", ["Hyatt"], {
                         "srcType": "CUSTOM",
                         "fieldName": "5ce45bf5e4b0a645c7d3e18a"
-                    })
-    rb.add_filter("IN", "HIERARCHY_ID", ["5c484387e4b0e6a8e58d17b2"],{
+    })
+    rb.add_filter("IN", "HIERARCHY_ID", ["5c484387e4b0e6a8e58d17b2"], {
                         "contentType": "DB_FILTER",
                         "ASSET_CLASS": "INTEL_LOCATION",
                         "withAssetLevel": True,
                         "withDimension": True
-                    })
+    })
 
     if rb.build_report_request():
         process_response(client.fetch_report(rb.request))
     else:
         print("Error building request:", rb.last_error)
+
 
 def fetch_report_data_subject_categories():
     global client
@@ -293,7 +329,8 @@ def fetch_report_data_subject_categories():
     rb.set_page_size(50)
     rb.set_page(0)
 
-    rb.add_column("Avg. of Experience Score", "NLP_INSIGHT_POLARITY_SCORE","AVG")
+    rb.add_column("Avg. of Experience Score",
+                  "NLP_INSIGHT_POLARITY_SCORE", "AVG")
 
     rb.add_group_by("LTS_NOC", "LTS_NOC", "FIELD")
     rb.add_group_by("Location IDs", "LOCATION_IDS", "FIELD")
@@ -301,18 +338,19 @@ def fetch_report_data_subject_categories():
     rb.add_filter("IN", "LOCATION_CUSTOM_PROPERTY", ["Hyatt"], {
                         "srcType": "CUSTOM",
                         "fieldName": "5ce45bf5e4b0a645c7d3e18a"
-                    })
-    rb.add_filter("IN", "HIERARCHY_ID", ["5c484387e4b0e6a8e58d17b2"],{
+    })
+    rb.add_filter("IN", "HIERARCHY_ID", ["5c484387e4b0e6a8e58d17b2"], {
                         "contentType": "DB_FILTER",
                         "ASSET_CLASS": "INTEL_LOCATION",
                         "withAssetLevel": True,
                         "withDimension": True
-                    })
+    })
 
     if rb.build_report_request():
         process_response(client.fetch_report(rb.request))
     else:
         print("Error building request:", rb.last_error)
+
 
 def fetch_report_data_reviews():
     global client
@@ -327,21 +365,21 @@ def fetch_report_data_reviews():
     rb.set_page_size(10)
     rb.set_page(0)
 
-    rb.add_column("Avg. of Experience Score", "NLP_DOC_POLARITY_SCORE","AVG")
+    rb.add_column("Avg. of Experience Score", "NLP_DOC_POLARITY_SCORE", "AVG")
 
-    rb.add_group_by("Message", "ES_MESSAGE_ID","FIELD")
+    rb.add_group_by("Message", "ES_MESSAGE_ID", "FIELD")
     rb.add_group_by("Location IDs", "LOCATION_IDS", "FIELD", {"missing": 0})
     rb.add_group_by("Created Time", "SN_CREATED_TIME", "DATE_HISTOGRAM", {
-                                                "interval": "1M"
-                                            })
+        "interval": "1M"
+    })
     rb.add_group_by("Star Rating", "STAR_RATING", "FIELD", {"missing": 0})
 
-    rb.add_filter("IN", "HIERARCHY_ID", ["5c484387e4b0e6a8e58d17b2"],{
+    rb.add_filter("IN", "HIERARCHY_ID", ["5c484387e4b0e6a8e58d17b2"], {
                         "contentType": "DB_FILTER",
                         "ASSET_CLASS": "INTEL_LOCATION",
                         "withAssetLevel": True,
                         "withDimension": True
-                    })
+    })
 
     if rb.build_report_request():
         print(json.dumps(rb.request, sort_keys=False, indent=4))
@@ -352,7 +390,99 @@ def fetch_report_data_reviews():
 
 def fetch_report_metrics(report_engine, report_name):
     global client
-    process_response(client.fetch_report_metrics_and_dimensions(report_engine, report_name))
+    process_response(client.fetch_report_metrics_and_dimensions(
+        report_engine, report_name))
+
+
+def fetch_case_audit(flag):
+    global client
+    raw = (flag.upper() == "TRUE")
+    rb = sc.ReportBuilder()
+    rb.set_engine("PLATFORM")
+    rb.set_name("CaseSLAReport")
+    rb.set_start_time(datetime_toepoch(2019, 1, 1, 0, 0))
+    rb.set_end_time(datetime_toepoch(2020, 2, 17, 12, 59))
+    rb.set_time_zone("America/Denver")
+    rb.set_page_size(100)
+    rb.set_page(0)
+    rb.add_group_by("Case ID", "CASE_ID", "FIELD")
+    rb.add_filter("IN", "ARCHIVE", ["true"])
+
+    audit_request = {
+        "assetIds": [],
+        "assetClass": "UNIVERSAL_CASE",
+        "ascending": "false",
+        "limit": 1000
+    }
+    if rb.build_report_request():
+        if not raw:
+            print("Report request:")
+            print(rb.request)
+        if client.fetch_report(rb.request):
+            cases = client.result
+            if "rows" in cases:
+                if not raw:
+                    print(json.dumps(cases, indent=4))
+                    print("Cases Returned:", str(len(cases["rows"])))
+                for case_id in cases["rows"]:
+                    if client.fetch_case_by_case_id(case_id[0]):
+                        case = client.result["data"]
+                        audit_request["assetIds"].append(case["caseNumber"])
+                        if not raw:
+                            print("Case Id:", case_id[0], " - Case Number:", case["caseNumber"])
+                if not raw:
+                    print("Audit Request:", json.dumps(audit_request, indent=4))
+
+                if client.fetch_audit(audit_request):
+                    audit_records = client.result
+                    if raw:
+                        print(json.dumps(audit_records, indent=4))
+                    else:
+                        print("Number of change records returned:",str(len(audit_records["data"])))
+
+                    for audit in audit_records["data"]:
+                        if not raw:
+                            print("Case:", audit["assetId"], " DateTime:", datetime_fromepoch(
+                            audit["changeDate"]/1000), " Number of field changes:", str(len(audit["changes"])))
+                else:
+                    print("audit request failed", client.raw)
+            else:
+                print("No cases returned", client.raw)
+        else:
+            print("Error executing request", client.raw)
+    else:
+        print("Error building request:", rb.last_error)
+
+def fetch_archived_cases():
+    filter = {"query": "",
+              "filters": [
+                  {
+                      "filterType": "IN",
+                      "field": "channelType",
+                      "values": ["SPRINKLR"]
+                  },
+                  {
+                      "filterType": "IN",
+                      "field": "archived",
+                      "values": ["true"]
+                  }
+              ],
+              "paginationInfo": {
+                  "start": 0,
+                  "rows": 100,
+                  "sortKey":
+                  "caseModificationTime"
+              }}
+
+    if client.search_case_v1(filter):
+        cases = client.result
+        print(json.dumps(cases))
+        #for case in cases["searchResults"]:
+        #    print(case['universalCaseApiDTO']['id'])
+        #    # print(case["id"], " ", case["description"])
+    else:
+        print("Search Failed:", client.raw)
+
 
 def fetch_webhook_types():
     global client
@@ -360,15 +490,18 @@ def fetch_webhook_types():
 
 
 def asset_search_one():
-#    global client
-#    client.asset_search()
+    #    global client
+    #    client.asset_search()
     return
+
 
 def asset_search_two():
     return
 
+
 def asset_search_three():
     return
+
 
 def create_case():
     global client
@@ -377,9 +510,10 @@ def create_case():
 
     workflow = case.Workflow()
     workflow.add_queue(case.Workflow.Queue(123, now_as_epoch))
-    workflow.assignment = case.Workflow.Assignment("123", "USER", 123, now_as_epoch)
+    workflow.assignment = case.Workflow.Assignment(
+        "123", "USER", 123, now_as_epoch)
     workflow.modified_time = now_as_epoch
-    workflow.campaign_id = 123 # campaign ID ?
+    workflow.campaign_id = 123  # campaign ID ?
     space_workflow = case.Workflow.SpaceWorkflow("123", now_as_epoch)
     space_workflow.add_queue("123", now_as_epoch)
     space_workflow.add_custom_field("CustomField1", "custom_field_1")
@@ -394,9 +528,10 @@ def create_case():
     case.description = "Case Created on " + datetime.datetime.now().strftime("%c")
     case.version = "1"
     case.status = "Open"
-    case.priority = "High" # ?
+    case.priority = "High"  # ?
     case.case_type = "Problem"
-    case.external_case = case.External_Case(12345, "12345", "salesforce", None, now_as_epoch, now_as_epoch)
+    case.external_case = case.External_Case(
+        12345, "12345", "salesforce", None, now_as_epoch, now_as_epoch)
     case.contact = case.Contact(123, "Ariel Tritan")
     case.attachment = case_attachment
     case.due_date = now_as_epoch + 10000
@@ -408,27 +543,63 @@ def create_case():
 
     client.create_case(case)
 
+
 def fetch_case_by_number(case_number):
     global client
     process_response(client.fetch_case_by_number(case_number))
 
+
 def fetch_message_by_id_and_source(message_id, source_type):
     global client
-    process_response(client.fetch_message_by_id_and_source(message_id, source_type))
+    process_response(client.fetch_message_by_id_and_source(
+        message_id, source_type))
+
+
+def fetch_message_by_umid(umid):
+    global client
+    process_response(client.fetch_message_by_UMID(umid))
+
 
 def fetch_case_messages(case_id):
     global client
     process_response(client.fetch_case_associated_messages(case_id))
 
+
 def fetch_user():
     global client
     process_response(client.fetch_user())
+
 
 def fetch_user_by_id(user_id):
     global client
     process_response(client.fetch_user_by_id(user_id))
 
 # def search_entity(entity_type, filter, sort, key, order='ASC')
+
+def post_direct_message(twitter_handle):
+
+        request={"messageType": 3,
+            "accountId": 255156,
+            "content": {
+                "message": "If you're hAPI and you know it raise an exception!"
+            },
+            "taxonomy": {
+                "campaignId": "033_124"
+            }
+        }
+
+
+def date_time_toepoch(date_time):
+    return datetime_toepoch(date_time.year, date_time.month, date_time.day, date_time.hour, date_time.minute)
+
+
+def datetime_toepoch(year: int, month: int, day: int, hour=0, minute=0):
+    return int(float(time.mktime(datetime.datetime(year, month, day, hour, minute).timetuple())) * 1000)
+
+
+def datetime_fromepoch(epoch):
+    return time.strftime('%Y-%m-%d %H:%M:%S:{0:.0f}'.format(epoch%1000), time.localtime(epoch))
+
 
 def process_response(success):
     try:
@@ -440,7 +611,7 @@ def process_response(success):
                 print(client.status_message)
             else:
                 logging.debug("Result Type:" + str(type(client.result)))
-                #logging.debug("Result:" + str(client.result))
+                # logging.debug("Result:" + str(client.result))
                 if type(client.result) is dict or type(client.result) is list:
                     print(json.dumps(client.result, sort_keys=False, indent=4))
                 else:
@@ -460,45 +631,56 @@ def process_response(success):
 
 
 def print_usage():
-        print("Usage:")
-        print("SprinklrClientTest Authorize {apikey} {redirect_uri}")
-        print("                   AssetSearch [One | Two | Three]")
-        print("                   CreateCase")
-        print("                   FetchAccessToken {apikey} {secret} {code} {redirect uri}")
-        print("                   FetchAccessibleUsers")
-        print("                   FetchAccountCustomFields")
-        print("                   FetchAllDashboards")
-        print("                   FetchCaseByNumber {case_number}")
-        print("                   FetchCaseMessagesById {case_id}")
-        print("                   FetchClients")
-        print("                   FetchClientProfileLists")
-        print("                   FetchClientUrlShortners")
-        print("                   FetchClientUsers")
-        print("                   FetchDashboardByName {name}")
-        print("                   FetchDashboardStream {stream_id} {start} {rows} [{echo request} (True or False)]")
-        print("                   FetchInboundCustomFields")
-        print("                   FetchListeningTopics")
-        print("                   FetchListeningStream {id} {sinceTime} {untilTime}")
-        print("                   FetchMacros")
-        print("                   FetchMediaAssetCustomFields")
-        print("                   FetchMessageByIdAndSource {message_id} [ACCOUNT | PERSISTENT_SEARCH | LISTENING | BENCHMARKING | AUDIENCE | AUDIENCE_STUDY]}")
-        print("                   FetchOutboundCustomFields")
-        print("                   FetchPartnerAccountGroups")
-        print("                   FetchPartnerAccounts")
-        print("                   FetchPartnerCampaigns")
-        print("                   FetchPartnerUsers")
-        print("                   FetchPermissions")
-        print("                   FetchProfileCustomFields")
-        print("                   FetchReport LOCATION | CATEGORIES | ATTRIBUTES | REVIEWS | AUDIT")
-        print("                   FetchReportMetrics {Report_Engine} {Report_Type}")
-        print("                   FetchResources {resource type}")
-        print("                   FetchUMPriorities")
-        print("                   FetchUMStatuses")
-        print("                   FetchUser")
-        print("                   FetchUserById {User_Id}")
-        print("                   FetchUserGroups")
-        print("                   FetchWebhookTypes")
-        print("                   RefreshAccessToken")
+    print("Usage:")
+    print("SprinklrClientTest Authorize {apikey} {redirect_uri} [environment]")
+    print("                   AssetSearch [One | Two | Three]")
+    print("                   CreateCase")
+    print(
+        "                   FetchAccessToken {apikey} {secret} {code} {redirect uri}")
+    print("                   FetchAccessibleUsers")
+    print("                   FetchAccountCustomFields")
+    print("                   FetchAllDashboards")
+    print("                   FetchArchivedCases")
+    print("                   FetchCaseByNumber {case_number}")
+    print("                   FetchCaseMessagesById {case_id}")
+    print("                   FetchCaseAudit {raw_flag}")
+    print("                   FetchClients")
+    print("                   FetchClientProfileLists")
+    print("                   FetchClientUrlShortners")
+    print("                   FetchClientQueues")
+    print("                   FetchClientUsers")
+    print("                   FetchDashboardByName {name}")
+    print(
+        "                   FetchDashboardStream {stream_id} {start} {rows} [{echo request} (True or False)]")
+    print("                   FetchInboundCustomFields")
+    print("                   FetchListeningTopics")
+    print(
+        "                   FetchListeningStream {id} {sinceTime} {untilTime}")
+    print("                   FetchMacros")
+    print("                   FetchMediaAssetCustomFields")
+    print(
+        "                   FetchMessageByIdAndSource {message_id} [ACCOUNT | PERSISTENT_SEARCH | LISTENING | BENCHMARKING | AUDIENCE | AUDIENCE_STUDY]}")
+    print("                   FetchMessageByUMId {message_id}")
+    print("                   FetchOutboundCustomFields")
+    print("                   FetchPartnerAccountGroups")
+    print("                   FetchPartnerAccounts")
+    print("                   FetchPartnerCampaigns")
+    print("                   FetchPartnerQueues")
+    print("                   FetchPartnerUsers")
+    print("                   FetchPermissions")
+    print("                   FetchProfileCustomFields")
+    print("                   FetchReport LOCATION | CATEGORIES | ATTRIBUTES | REVIEWS | AUDIT")
+    print(
+        "                   FetchReportMetrics {Report_Engine} {Report_Type}")
+    print("                   FetchResources {resource type}")
+    print("                   FetchUMPriorities")
+    print("                   FetchUMStatuses")
+    print("                   FetchUser")
+    print("                   FetchUserById {User_Id}")
+    print("                   FetchUserGroups")
+    print("                   FetchWebhookTypes")
+    print("                   RefreshAccessToken")
+
 
 def main():
     global settings
@@ -506,7 +688,8 @@ def main():
 
     try:
         logging.basicConfig(filename='SprinklrClient.log', level=logging.DEBUG)
-        logging.debug("Starting SprinklrClientTest with " + str(len(sys.argv) - 1) + " actual parameters")
+        logging.debug("Starting SprinklrClientTest with " +
+                      str(len(sys.argv) - 1) + " actual parameters")
 
         settings = EasySettings("Sprinklr.conf")
 
@@ -517,24 +700,30 @@ def main():
         if len(path) == 0:
             path = None
 
-        #If using a differnent enviornment other that Prod, set path to that value (like 'prod2')
-        client = sc.SprinklrClient(key=key, access_token=access_token, path=path)
+        # If using a differnent enviornment other that Prod, set path to that value (like 'prod2')
+        client = sc.SprinklrClient(
+            key=key, access_token=access_token, path=path)
 
         if len(sys.argv) > 1:
             command = str(sys.argv[1]).upper()
 
             if command == 'AUTHORIZE':
-                if len(sys.argv) != 4:
-                    print("Invalid command line - Usage: SprinklrClientTest Authorize {apikey} {redirect_uri}")
+                if len(sys.argv) > 5:
+                    print(
+                        "Invalid command line - Usage: SprinklrClientTest Authorize {apikey} {redirect_uri} [environment]")
                 else:
                     key = sys.argv[2]
                     redirect_uri = sys.argv[3]
+                    if len(sys.argv) == 5:
+                        path=sys.argv[4]
+                    else:
+                        path = None
                     client = sc.SprinklrClient(key)
-
-                    authorize(key, redirect_uri)
+                    authorize(key, redirect_uri, path)
             elif command == 'ASSETSEARCH':
                 if len(sys.argv) != 3:
-                    print("Invalid command line - Usage: SprinklrClientTest AssetSearch [One | Two | Three]")
+                    print(
+                        "Invalid command line - Usage: SprinklrClientTest AssetSearch [One | Two | Three]")
                 else:
                     if sys.argv[2].upper() == "ONE":
                         asset_search_one()
@@ -543,7 +732,8 @@ def main():
                     elif sys.argv[2].upper() == "THREE":
                         asset_search_three()
                     else:
-                        print("Invalid Asset Search Option passed:", sys.argv[2])
+                        print("Invalid Asset Search Option passed:",
+                              sys.argv[2])
             elif command == "CREATECASE":
                 create_case()
             elif command == 'FETCHALLDASHBOARDS':
@@ -551,16 +741,18 @@ def main():
             elif command == 'FETCHACCESSTOKEN':
                 if len(sys.argv) != 6:
                     print(
-                        "Invalid command line - Usage: SprinklrClientTest GetAccessToken {apikey} {secret} "
+                        "Invalid command line - Usage: SprinklrClientTest GetAccessToken {path} {apikey} {secret} "
                         "{code} {redirect URI}")
                 else:
-                    key = sys.argv[2]
-                    secret = sys.argv[3]
-                    code = sys.argv[4]
-                    redirect = sys.argv[5]
+                    path = sys.argv[2]
+                    key = sys.argv[3]
+                    secret = sys.argv[4]
+                    code = sys.argv[5]
+                    redirect = sys.argv[6]
 
-                    client = sc.SprinklrClient(key)
-                    success = client.fetch_access_token(secret=secret, code=code, redirect_uri=redirect)
+                    client = sc.SprinklrClient(key, path)
+                    success = client.fetch_access_token(
+                        secret=secret, code=code, redirect_uri=redirect)
 
                     if success:
                         settings.set('access_token', client.access_token)
@@ -568,7 +760,7 @@ def main():
                         settings.set('redirect_uri', redirect)
                         settings.set('key', key)
                         settings.set('secret', secret)
-                        settings.set('path', path)
+                        settings.set('path', path),
                         settings.save()
                         print("Success")
                     else:
@@ -576,11 +768,16 @@ def main():
 
                     key = settings.get('key')
                     access_token = settings.get('access_token')
-                    client = sc.SprinklrClient(key=key, access_token=access_token)
+                    client = sc.SprinklrClient(
+                        key=key, access_token=access_token)
             elif command == 'FETCHACCESSIBLEUSERS':
                 fetch_accessible_users()
             elif command == 'FETCHACCOUNTCUSTOMFIELDS':
                 fetch_account_custom_fields()
+            elif command == 'FETCHCASEAUDIT':
+                fetch_case_audit(sys.argv[2])
+            elif command == 'FETCHARCHIVEDCASES':
+                fetch_archived_cases()
             elif command == "FETCHCASEBYNUMBER":
                 fetch_case_by_number(sys.argv[2])
             elif command == "FETCHCASEMESSAGESBYID":
@@ -591,11 +788,14 @@ def main():
                 fetch_client_profile_lists()
             elif command == "FETCHCLIENTURLSHORTNERS":
                 fetch_client_url_shortners()
+            elif command == 'FETCHCLIENTQUEUES':
+                fetch_client_queues()
             elif command == 'FETCHCLIENTUSERS':
                 fetch_client_users()
             elif command == 'FETCHDASHBOARDBYNAME':
                 if len(sys.argv) != 3:
-                    print("Invalid command line - Usage: SprinklrClientTest GetDashboardByName {name}")
+                    print(
+                        "Invalid command line - Usage: SprinklrClientTest GetDashboardByName {name}")
                 else:
                     fetch_dashboard_by_name(sys.argv[2])
             elif command == 'FETCHDASHBOARDSTREAM':
@@ -606,15 +806,19 @@ def main():
                 fetch_listening_topics()
             elif command == 'FETCHLISTENINGSTREAM':
                 if len(sys.argv) == 5:
-                    fetch_listening_stream(sys.argv[2], sys.argv[3], sys.argv[4])
+                    fetch_listening_stream(
+                        sys.argv[2], sys.argv[3], sys.argv[4])
                 elif len(sys.argv) == 6:
-                    fetch_listening_stream(sys.argv[2], sys.argv[3], sys.argv[4], echo_request=sys.argv[5])
+                    fetch_listening_stream(
+                        sys.argv[2], sys.argv[3], sys.argv[4], echo_request=sys.argv[5])
             elif command == 'FETCHMACROS':
                 fetch_macros()
             elif command == 'FETCHMEDIAASSETCUSTOMFIELDS':
                 fetch_media_asset_custom_fields()
             elif command == 'FETCHMESSAGEBYIDANDSOURCE':
                 fetch_message_by_id_and_source(sys.argv[2], sys.argv[3])
+            elif command == 'FETCHMESSAGEBYUMID':
+                fetch_message_by_umid(sys.argv[2])
             elif command == 'FETCHOUTBOUNDCUSTOMFIELDS':
                 fetch_outbound_custom_fields()
             elif command == 'FETCHPARTNERACCOUNTGROUPS':
@@ -623,6 +827,8 @@ def main():
                 fetch_partner_accounts()
             elif command == 'FETCHPARTNERCAMPAIGNS':
                 fetch_partner_campaigns()
+            elif command == 'FETCHPARTNERQUEUES':
+                fetch_partner_queues()
             elif command == 'FETCHPARTNERUSERS':
                 fetch_partner_users()
             elif command == 'FETCHPERMISSIONS':
@@ -666,7 +872,8 @@ def main():
 
                 client = sc.SprinklrClient(key)
 
-                success = client.refresh_access_token(key, secret, redirect, refresh_access_token)
+                success = client.refresh_access_token(
+                    key, secret, redirect, refresh_access_token)
 
                 if success:
                     settings.set('access_token', client.access_token)
@@ -685,6 +892,7 @@ def main():
     except Exception as ex:
         print("Error:" + str(ex))
         print_usage()
+
 
 if __name__ == "__main__":
     main()

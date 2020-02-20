@@ -26,13 +26,14 @@ class SprinklrClient:
         self.search_cursor = None
         self.path = path
         # current valid path options are (None), prod0, prod2, or sandbox
-        if path is not None:
+        if path is None:
+            self.path = ""
+        else:
             if path.endswith("/"):
                 self.path = path
             else:
                 self.path = path + "/"
-        else:
-            self.path = ""
+
         logging.info("Client initialized. Path is |" + self.path + "|")
         logging.info("Client initialized. Path without self is |" + path + "|")
 
@@ -136,6 +137,7 @@ class SprinklrClient:
                    'cache-control': 'no-cache'}
 
         logging.info("Posting to URL:" + request_url)
+        logging.debug("Headers:" + str(headers))
         logging.debug("Data Being Posted:" + str(data))
 
         try:
@@ -227,9 +229,8 @@ class SprinklrClient:
 
 # Authorize
     # this endpoint only returns the URL used to start the authorization process. It does not invoke the web-browser required workflow.
-    def authorize(self, api_key, redirect_uri):
-        print("self.path+++++++", self.path)
-        request_url = f'https://api2.sprinklr.com/{self.path}oauth/authorize?client_id={api_key}&response_type=code&redirect_uri={redirect_uri}'
+    def authorize(self, api_key, redirect_uri, path):
+        request_url = f'https://api2.sprinklr.com/{path}/oauth/authorize?client_id={api_key}&response_type=code&redirect_uri={redirect_uri}'
         return request_url
 
     # using the secret key and 'code' returned from the authoize process, retrieve the access and refresh tokens
@@ -348,9 +349,9 @@ class SprinklrClient:
 
 # Audit
 
-    def fetch_audit(self):
+    def fetch_audit(self, request):
         request_url = f'https://api2.sprinklr.com/{self.path}api/v1/audit/fetch'
-        return self.get_request(request_url)
+        return self.post_request(request_url, request)
 
 # Bootstrap
     def fetch_partner_campaigns(self):
@@ -835,7 +836,6 @@ class SprinklrClient:
         request_url = f'https://api2.sprinklr.com/{self.path}api/v2/reports/query'
         return self.post_request(request_url, data)
 
-
 # SAM
 
 # Search
@@ -855,7 +855,10 @@ class SprinklrClient:
         request_url = f'https://api2.sprinklr.com/{self.path}api/v2/search/{entity_type}'
 
         request_data = \
-            {"filter": filter,
+            {"filter": {
+                "type": filter.type,
+                "filters":filter.filters
+            },
              "sort": {
                  "key": sort_key,
                  "order": sort_order
@@ -864,7 +867,11 @@ class SprinklrClient:
                  'size': page_size
                 }
              }
-        if (self.post_request(request_url, request_data)):
+
+        print("Seach URL:", request_url)
+        print("Search Request:", json.dumps(request_data, indent=4))
+
+        if (self.post_request(request_url, data=request_data)):
             self.search_cursor = self.result["data"]["cursor"]
         else:
              self.search_cursor = None
