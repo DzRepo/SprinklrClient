@@ -17,9 +17,9 @@ client = None
 settings = None
 
 
-def authorize(api_key, redirect_uri):
+def authorize(api_key, redirect_uri, path=None):
     global client
-    url = client.authorize(api_key, redirect_uri)
+    url = client.authorize(api_key, redirect_uri, path)
     wb.open(url, new=2)
 
 
@@ -574,6 +574,18 @@ def fetch_user_by_id(user_id):
 
 # def search_entity(entity_type, filter, sort, key, order='ASC')
 
+def post_direct_message(twitter_handle):
+    
+        request={"messageType": 3,
+            "accountId": 255156,
+            "content": {
+                "message": "If you're hAPI and you know it raise an exception!"
+            },
+            "taxonomy": {
+                "campaignId": "033_124"
+            }
+        }
+    
 
 def date_time_toepoch(date_time):
     return datetime_toepoch(date_time.year, date_time.month, date_time.day, date_time.hour, date_time.minute)
@@ -618,7 +630,7 @@ def process_response(success):
 
 def print_usage():
     print("Usage:")
-    print("SprinklrClientTest Authorize {apikey} {redirect_uri}")
+    print("SprinklrClientTest Authorize {apikey} {redirect_uri} [environment]")
     print("                   AssetSearch [One | Two | Three]")
     print("                   CreateCase")
     print(
@@ -694,14 +706,18 @@ def main():
             command = str(sys.argv[1]).upper()
 
             if command == 'AUTHORIZE':
-                if len(sys.argv) != 4:
+                if len(sys.argv) > 5:
                     print(
-                        "Invalid command line - Usage: SprinklrClientTest Authorize {apikey} {redirect_uri}")
+                        "Invalid command line - Usage: SprinklrClientTest Authorize {apikey} {redirect_uri} [environment]")
                 else:
                     key = sys.argv[2]
                     redirect_uri = sys.argv[3]
+                    if len(sys.argv) == 5:
+                        path=sys.argv[4]
+                    else:
+                        path = None
                     client = sc.SprinklrClient(key)
-                    authorize(key, redirect_uri)
+                    authorize(key, redirect_uri, path)
             elif command == 'ASSETSEARCH':
                 if len(sys.argv) != 3:
                     print(

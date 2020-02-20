@@ -25,13 +25,14 @@ class SprinklrClient:
         self.raw = None
         self.search_cursor = None
         # current valid path options are (None), prod0, prod2, or sandbox
-        if path is not None:
+        if path is None:
+            self.path = ""
+        else:
             if path.endswith("/"):
                 self.path = path
             else:
                 self.path = path + "/"
-        else:
-            self.path = ""
+        
         logging.info("Client initialized. Path is |" + self.path + "|")
         
 # HTTP Methods
@@ -226,8 +227,8 @@ class SprinklrClient:
 
 # Authorize
     # this endpoint only returns the URL used to start the authorization process. It does not invoke the web-browser required workflow.
-    def authorize(self, api_key, redirect_uri):
-        request_url = f'https://api2.sprinklr.com/{self.path}oauth/authorize?client_id={api_key}&response_type=code&redirect_uri={redirect_uri}'
+    def authorize(self, api_key, redirect_uri, path):
+        request_url = f'https://api2.sprinklr.com/{path}/oauth/authorize?client_id={api_key}&response_type=code&redirect_uri={redirect_uri}'
         return request_url
 
     # using the secret key and 'code' returned from the authoize process, retrieve the access and refresh tokens        
