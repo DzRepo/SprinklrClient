@@ -1,6 +1,6 @@
 import requests
 import json
-import urllib.parse
+import urllib as urllib
 import logging
 from SprinklrCase import CaseCreate, CaseUpdate
 from SprinklrReport import ReportBuilder
@@ -34,8 +34,8 @@ class SprinklrClient:
             else:
                 self.path = path + "/"
 
-        logging.info("Client initialized. Path is |" + self.path + "|")
-        logging.info("Client initialized. Path without self is |" + path + "|")
+        # logging.info("Client initialized. Path is |" + self.path + "|")
+        # logging.info("Client initialized. Path without self is |" + path + "|")
 
 # HTTP Methods
     def delete_request(self, request_url: str, data = None):
@@ -267,10 +267,13 @@ class SprinklrClient:
 
             return response.status_code == HTTP_OK
 
-    def refresh_access_token(self, api_key, secret, redirect_uri, refresh_token):
+    def refresh_access_token(self, api_key, secret, redirect_uri, refresh_token,path):
         logging.info("Calling refresh_access_token")
-        request_url = f'https://api2.sprinklr.com/{self.path}oauth/token?client_id={api_key}&client_secret={secret}&redirect_uri={redirect_uri}&grant_type=refresh_token&refresh_token={refresh_token}'
+        refresh_token = urllib.parse.quote_plus(refresh_token)
+        request_url = f'https://api2.sprinklr.com/{path}/oauth/token?client_id={api_key}&client_secret={secret}&redirect_uri={redirect_uri}&grant_type=refresh_token&refresh_token={refresh_token}'
         headers = {'Content-Type': 'Application/x-www-form-urlencoded'}
+
+        print("request_url", request_url)
         response = requests.post(url=request_url, headers=headers)
 
         self.status_code = response.status_code

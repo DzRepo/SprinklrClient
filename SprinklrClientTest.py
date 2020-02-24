@@ -265,7 +265,7 @@ def fetch_report_user_audit():
     # one_day_details =
 
     rb.add_group_by("Date", "ACTION_TIME", "FIELD", {"interval": "1D"})
-    
+
     rb.add_group_by("User", "USER_ID", "FIELD")
 #    rb.add_group_by("User Group", "USER_GROUP_ID", "FIELD")
     rb.add_group_by("Status", "LOGIN_CURRENT_STATUS", "FIELD")
@@ -636,7 +636,7 @@ def print_usage():
     print("                   AssetSearch [One | Two | Three]")
     print("                   CreateCase")
     print(
-        "                   FetchAccessToken {apikey} {secret} {code} {redirect uri}")
+        "                   FetchAccessToken {apikey} {secret} {code} {redirect_uri}")
     print("                   FetchAccessibleUsers")
     print("                   FetchAccountCustomFields")
     print("                   FetchAllDashboards")
@@ -739,10 +739,11 @@ def main():
             elif command == 'FETCHALLDASHBOARDS':
                 fetch_all_dashboards()
             elif command == 'FETCHACCESSTOKEN':
-                if len(sys.argv) != 6:
+                if len(sys.argv) != 7:
                     print(
-                        "Invalid command line - Usage: SprinklrClientTest GetAccessToken {path} {apikey} {secret} "
-                        "{code} {redirect URI}")
+                        "Invalid command line - Usage: SprinklrClientTest FetchAccessToken {path} {apikey} {secret} "
+                        "{code} {redirect URI}"
+                        "Length og Argv", len(sys.argv))
                 else:
                     path = sys.argv[2]
                     key = sys.argv[3]
@@ -869,11 +870,12 @@ def main():
                 secret = settings.get('secret')
                 redirect = settings.get('redirect_uri')
                 refresh_access_token = settings.get('refresh_token')
+                path = settings.get('path')
 
                 client = sc.SprinklrClient(key)
 
                 success = client.refresh_access_token(
-                    key, secret, redirect, refresh_access_token)
+                    key, secret, redirect, refresh_access_token,path)
 
                 if success:
                     settings.set('access_token', client.access_token)
@@ -881,6 +883,7 @@ def main():
                     settings.set('redirect_uri', redirect)
                     settings.set('key', key)
                     settings.set('secret', secret)
+                    settings.set('path', path)
                     settings.save()
                     print("Success")
                 else:
