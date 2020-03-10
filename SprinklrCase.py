@@ -2,7 +2,7 @@ class CaseBase:
     def __init__(self):
         self.case_id = None #
         self.case_number = None #
-        self.subject = None # 
+        self.subject = None #
         self.description = None #
         self.status = None
         self.due_date = None
@@ -22,7 +22,8 @@ class CaseCreate(CaseBase):
         self.created_time = None
         self.modified_time = None
         self.first_message_id = None
-                
+        print("I AM HERE!!!!")
+
     @property
     def external_case(self):
         return {
@@ -33,7 +34,7 @@ class CaseCreate(CaseBase):
             "createdTime" : self.__external_case.created_time,
             "modifiedTime" : self.__external_case.modified_time
         }
-    
+
     @external_case.setter
     def external_case(self, ec):
         self.__external_case = ec
@@ -89,7 +90,7 @@ class CaseCreate(CaseBase):
             def __init__(self, queue_id, assignment_time):
                 self.queue_id = queue_id
                 self.assignment_time = assignment_time
-        
+
         def add_queue(self, queue : Queue):
             self.queues.append({
                 "queueId" : queue.queue_id,
@@ -130,7 +131,7 @@ class CaseCreate(CaseBase):
             "spaceWorkflows" : self.__workflow.space_workflows,
             "campaignId" : self.__workflow.campaign_id
         }
-        
+
 
     @workflow.setter
     def workflow(self, wf):
@@ -139,7 +140,7 @@ class CaseCreate(CaseBase):
     @workflow.deleter
     def workflow(self):
         del self.__workflow
-    
+
 
     class Contact:
         def __init__(self, id, name):
@@ -160,7 +161,7 @@ class CaseCreate(CaseBase):
     @contact.deleter
     def contact(self):
         del self.__contact
-    
+
 
     class Attachment:
         def __init__(self, type):
@@ -246,7 +247,7 @@ class CaseUpdate(CaseBase):
         self.added_notify_users = None
         self.removed_notify_users = None
         self.synced_notify_usrs = None
-        self.update_actions = []      
+        self.update_actions = []
         self.added_custom_properties = None
         self.removed_custom_properties = None
         self.synced_custom_properties = None
@@ -287,6 +288,3 @@ class CaseUpdate(CaseBase):
             self.request["description"] = self.description
         if self.status is not None:
             self.request["status"] = self.status
-
-        
-        

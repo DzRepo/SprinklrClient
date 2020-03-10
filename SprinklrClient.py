@@ -27,7 +27,7 @@ class SprinklrClient:
         self.path = path
         # current valid path options are (None), prod0, prod2, or sandbox
         if path is None:
-            self.path = ""
+            path = ""
         else:
             if path.endswith("/"):
                 self.path = path
@@ -250,6 +250,11 @@ class SprinklrClient:
             headers = {'Content-Type': 'application/x-www-form-urlencoded'}
             response = requests.post(url=request_url, headers=headers)
 
+            print("----------------Start Response----------------")
+            print(json.loads(response.content))
+            print("----------------End Response----------------")
+
+
             self.raw = response
 
             self.status_code = response.status_code
@@ -442,6 +447,8 @@ class SprinklrClient:
 
     def create_case_v1(self, case_data):
         request_url = f'https://api2.sprinklr.com/{self.path}api/v1/case'
+        print("+++++++++++request_url++++++++\n", request_url + "+++++++++++request_url++++++++\n")
+        print("+++++++++++case_data++++++++\n", case_data + "+++++++++++case_data++++++++\n")
         return self.post_request(request_url, data=case_data)
 
     def delete_case_v1(self, case_id):
