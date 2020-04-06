@@ -16,12 +16,22 @@ import logging
 client = None
 settings = None
 
-
 def authorize(api_key, redirect_uri, path=None):
     global client
     url = client.authorize(api_key, redirect_uri, path)
     wb.open(url, new=2)
 
+def add_comment_to_case(case_number, comment):
+    global client
+    process_response(client.add_comment("CASE", case_number, comment))
+    
+def fetch_case_comment(case_number, comment_id):
+    global client
+    process_response(client.fetch_comment("CASE", case_number, comment_id))
+
+def fetch_case_comments(case_number):
+    global client
+    process_response(client.search_comments(case_number, "UNIVERSAL_CASE"))
 
 def fetch_access_token(code):
     logging.info("fetch_access_token called")
@@ -30,8 +40,7 @@ def fetch_access_token(code):
     secret = settings.get('secret')
     redirect = settings.get('redirect')
 
-    success = client.fetch_access_token(
-        secret=secret, redirect_uri=redirect, code=code)
+    success = client.fetch_access_token(secret=secret, redirect_uri=redirect, code=code)
 
     if not success:
         logging.error(client.status_message)
@@ -60,6 +69,10 @@ def refresh_access_token():
             j_result = json.loads(client.status_message)
             print("Error: ", json.dumps(j_result, indent=4, sort_keys=True))
 
+
+def fetch_account(account_type, channel_id):
+    global client
+    process_response(client.fetch_account_by_channel_id(account_type, channel_id))
 
 def fetch_all_dashboards():
     global client
@@ -427,21 +440,24 @@ def fetch_case_audit(flag):
                         case = client.result["data"]
                         audit_request["assetIds"].append(case["caseNumber"])
                         if not raw:
-                            print("Case Id:", case_id[0], " - Case Number:", case["caseNumber"])
+                            print(
+                                "Case Id:", case_id[0], " - Case Number:", case["caseNumber"])
                 if not raw:
-                    print("Audit Request:", json.dumps(audit_request, indent=4))
+                    print("Audit Request:", json.dumps(
+                        audit_request, indent=4))
 
                 if client.fetch_audit(audit_request):
                     audit_records = client.result
                     if raw:
                         print(json.dumps(audit_records, indent=4))
                     else:
-                        print("Number of change records returned:",str(len(audit_records["data"])))
+                        print("Number of change records returned:",
+                              str(len(audit_records["data"])))
 
                     for audit in audit_records["data"]:
                         if not raw:
                             print("Case:", audit["assetId"], " DateTime:", datetime_fromepoch(
-                            audit["changeDate"]/1000), " Number of field changes:", str(len(audit["changes"])))
+                                audit["changeDate"]/1000), " Number of field changes:", str(len(audit["changes"])))
                 else:
                     print("audit request failed", client.raw)
             else:
@@ -450,6 +466,7 @@ def fetch_case_audit(flag):
             print("Error executing request", client.raw)
     else:
         print("Error building request:", rb.last_error)
+
 
 def fetch_archived_cases():
     filter = {"query": "",
@@ -468,14 +485,13 @@ def fetch_archived_cases():
               "paginationInfo": {
                   "start": 0,
                   "rows": 100,
-                  "sortKey":
-                  "caseModificationTime"
+                  "sortKey": "caseModificationTime"
               }}
 
     if client.search_case_v1(filter):
         cases = client.result
         print(json.dumps(cases))
-        #for case in cases["searchResults"]:
+        # for case in cases["searchResults"]:
         #    print(case['universalCaseApiDTO']['id'])
         #    # print(case["id"], " ", case["description"])
     else:
@@ -574,18 +590,29 @@ def fetch_user_by_id(user_id):
 
 # def search_entity(entity_type, filter, sort, key, order='ASC')
 
-def post_direct_message(twitter_handle):
+
+def post_direct_message(from_twitter_handle, to_twitter_handle):
+    global client
     
-        request={"messageType": 3,
-            "accountId": 255156,
-            "content": {
-                "message": "If you're hAPI and you know it raise an exception!"
-            },
-            "taxonomy": {
-                "campaignId": "033_124"
-            }
-        }
+    request_text = {"accountId": from_twitter_handle,
+                    "content": {"text": "Hello from the API!",
+                    "attachment": {"type": "IMAGE", "attachmentOptions":[]}}, "taxonomy": {"campaignId": "033_124"}, "inReplyToMessageId": "0", "toProfile": {"channelType" : "TWITTER"}}
+
+    request_text["toProfile"]["screenName"] = to_twitter_handle
+    #request = json.loads(str(request_text))
     
+    print("request:", json.dumps(request_text, indent=4))
+    if client.publish_message(request_text):
+        print("message sent")
+    else:
+        print("Message publish failed-", client.raw)
+
+def send_email(account_id, from_email, subject, message):
+    global client
+    if client.send_email(account_id, from_email, subject, message):
+        print("Sent successfully")
+    else:
+        print("Send failed:", client.raw)
 
 def date_time_toepoch(date_time):
     return datetime_toepoch(date_time.year, date_time.month, date_time.day, date_time.hour, date_time.minute)
@@ -596,8 +623,8 @@ def datetime_toepoch(year: int, month: int, day: int, hour=0, minute=0):
 
 
 def datetime_fromepoch(epoch):
-    return time.strftime('%Y-%m-%d %H:%M:%S:{0:.0f}'.format(epoch%1000), time.localtime(epoch))
-    
+    return time.strftime('%Y-%m-%d %H:%M:%S:{0:.0f}'.format(epoch % 1000), time.localtime(epoch))
+
 
 def process_response(success):
     try:
@@ -630,12 +657,14 @@ def process_response(success):
 
 def print_usage():
     print("Usage:")
-    print("SprinklrClientTest Authorize {apikey} {redirect_uri} [environment]")
+    print("SprinklrClientTest AddCommentToCase {Case_Number} {Comment}")
+    print("                   Authorize {apikey} {redirect_uri} [environment]")
     print("                   AssetSearch [One | Two | Three]")
     print("                   CreateCase")
     print(
         "                   FetchAccessToken {apikey} {secret} {code} {redirect uri}")
     print("                   FetchAccessibleUsers")
+    print("                   FetchAccount {channel_type} {channel_id}")
     print("                   FetchAccountCustomFields")
     print("                   FetchAllDashboards")
     print("                   FetchArchivedCases")
@@ -647,6 +676,7 @@ def print_usage():
     print("                   FetchClientUrlShortners")
     print("                   FetchClientQueues")
     print("                   FetchClientUsers")
+    print("                   FetchCaseComment {case_number} {comment_id}")
     print("                   FetchDashboardByName {name}")
     print(
         "                   FetchDashboardStream {stream_id} {start} {rows} [{echo request} (True or False)]")
@@ -668,17 +698,17 @@ def print_usage():
     print("                   FetchPermissions")
     print("                   FetchProfileCustomFields")
     print("                   FetchReport LOCATION | CATEGORIES | ATTRIBUTES | REVIEWS | AUDIT")
-    print(
-        "                   FetchReportMetrics {Report_Engine} {Report_Type}")
     print("                   FetchResources {resource type}")
     print("                   FetchUMPriorities")
     print("                   FetchUMStatuses")
     print("                   FetchUser")
-    print("                   FetchUserById {User_Id}")
+    print("                   FetchUserById {User_id}")
     print("                   FetchUserGroups")
     print("                   FetchWebhookTypes")
+    print("                   PostDirectMessage {from_id} {user_id}")
     print("                   RefreshAccessToken")
-
+    print("                   SendEmail {to_address} {from_address} {subject} {message}")
+    
 
 def main():
     global settings
@@ -688,9 +718,7 @@ def main():
         logging.basicConfig(filename='SprinklrClient.log', level=logging.DEBUG)
         logging.debug("Starting SprinklrClientTest with " +
                       str(len(sys.argv) - 1) + " actual parameters")
-
         settings = EasySettings("Sprinklr.conf")
-
         key = settings.get('key')
         path = settings.get('path')
         access_token = settings.get('access_token')
@@ -705,7 +733,9 @@ def main():
         if len(sys.argv) > 1:
             command = str(sys.argv[1]).upper()
 
-            if command == 'AUTHORIZE':
+            if command == 'ADDCOMMENTTOCASE':
+                add_comment_to_case(sys.argv[2], sys.argv[3])
+            elif command == 'AUTHORIZE':
                 if len(sys.argv) > 5:
                     print(
                         "Invalid command line - Usage: SprinklrClientTest Authorize {apikey} {redirect_uri} [environment]")
@@ -713,7 +743,7 @@ def main():
                     key = sys.argv[2]
                     redirect_uri = sys.argv[3]
                     if len(sys.argv) == 5:
-                        path=sys.argv[4]
+                        path = sys.argv[4]
                     else:
                         path = None
                     client = sc.SprinklrClient(key)
@@ -770,6 +800,8 @@ def main():
                         key=key, access_token=access_token)
             elif command == 'FETCHACCESSIBLEUSERS':
                 fetch_accessible_users()
+            elif command == 'FETCHACCOUNT':
+                fetch_account(sys.argv[2], sys.argv[3])
             elif command == 'FETCHACCOUNTCUSTOMFIELDS':
                 fetch_account_custom_fields()
             elif command == 'FETCHCASEAUDIT':
@@ -778,6 +810,10 @@ def main():
                 fetch_archived_cases()
             elif command == "FETCHCASEBYNUMBER":
                 fetch_case_by_number(sys.argv[2])
+            elif command == "FETCHCASECOMMENT":
+                fetch_case_comment(sys.argv[2], sys.argv[3])
+            elif command == "FETCHCASECOMMENTS":
+                fetch_case_comments(sys.argv[2])
             elif command == "FETCHCASEMESSAGESBYID":
                 fetch_case_messages(sys.argv[2])
             elif command == "FETCHCLIENTS":
@@ -862,16 +898,19 @@ def main():
                 fetch_user_groups()
             elif command == "FETCHWEBHOOKTYPES":
                 fetch_webhook_types()
+            elif command == "POSTDIRECTMESSAGE":
+                post_direct_message(sys.argv[2], sys.argv[3])
             elif command == "REFRESHACCESSTOKEN":
                 key = settings.get('key')
                 secret = settings.get('secret')
                 redirect = settings.get('redirect_uri')
                 refresh_access_token = settings.get('refresh_token')
+                path=settings.get('path')
 
                 client = sc.SprinklrClient(key)
 
                 success = client.refresh_access_token(
-                    key, secret, redirect, refresh_access_token)
+                    key, secret, redirect, refresh_access_token, path)
 
                 if success:
                     settings.set('access_token', client.access_token)
@@ -883,6 +922,8 @@ def main():
                     print("Success")
                 else:
                     print(client.result)
+            elif command == "SENDEMAIL":
+                send_email(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
             else:
                 print_usage()
         else:
