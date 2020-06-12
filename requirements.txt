@@ -1,2 +1,1 @@
 requests==2.21.0
-EasySettings==3.2.0
