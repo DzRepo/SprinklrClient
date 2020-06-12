@@ -7,8 +7,6 @@ Please review the library before using in a production environment to make sure 
 
 - See the [Generating an Access Token](Sprinklr%20Client%20Library%20-%20Generating%20an%20Access%20Token.pdf) document for directions after registering for a developer account at [Developer.Sprinklr.com](https://developer.sprinklr.com).
 
-Here is a list of current supported functions via the test client ([SprinklrClientTest.py](SprinklrClientTest.py)):
-
 Please let me know if you are using this library. And PLEASE! -> Send feedback to SteveDz@Sprinklr.com - Thanks!
 
 Dz
