@@ -3,15 +3,29 @@ import json
 import urllib as urllib
 import logging
 
-
 HTTP_OK = 200
 HTTP_NO_RESPONSE = 204
 
-
 class SprinklrClient:
-    """Sprinklr Client Library."""
+    """Sprinklr Client Library"""
 
     def __init__(self, key, path=None, access_token=None):
+        """SprinklrClient
+
+        Args:
+            key (string): The API Key for the application, obtained at https://developer.sprinklr.com 
+            path (string, optional): [description]. Defaults to None - Only necessary for environments other than Production.
+            access_token (string, optional): Unique access token representing a user. Defaults to None, but needed most calls
+
+            Most calls return a boolean indicating success or failure. It should not be necessary to wrap API calls in a try block.
+            
+            On success, the object will be returned in the .result property.
+            If the return value is a JSON object(most common), it will be converted automatically to a Python dictionary object. the .raw property will 
+            contain the text version of the response.
+
+            On failure (return is false), status_message will contain the error text.
+
+        """
         self.last_status_code = HTTP_OK
         self.encoding = None
         self.access_token = access_token
@@ -33,6 +47,80 @@ class SprinklrClient:
                 self.path = path + "/"
 
 # HTTP Methods
+
+    def _make_api_request(self, verb, request_url, data = None, returns_json = True, is_file = False):
+        
+        headers = {'key': self.key,
+                   'Authorization': "Bearer " + self.access_token}
+
+        if verb.upper() in {"POST", "DELETE"}:
+            headers['Content-Type'] = 'application/json'
+            headers['cache-control'] = 'no-cache'
+
+        if returns_json:
+            headers['accept'] = 'application/json'
+
+        if is_file:
+            headers["Content-Type"] = 'multipart/form-data'
+
+        logging.info(verb + " - URL:" + request_url)
+        logging.debug("Headers:" + str(headers))
+
+        response = None
+
+        try:
+            if verb.upper() == "GET":
+                response = requests.get(url=request_url, headers=headers)
+            elif verb.upper() == "DELETE":
+                response = requests.delete(url=request_url, headers=headers, data=json.dumps(data))
+            elif verb.upper() == "POST":
+                # Detect if data is a JSON object and convert to string if necessary
+                if type(data) is str:
+                    response = requests.post(url=request_url, headers=headers, data=data)
+                else:
+                    response = requests.post(url=request_url, headers=headers, data=json.dumps(data))
+            elif verb.upper() == "PUT":
+                # Detect if data is a JSON object and convert to string if necessary
+                if type(data) is str:
+                    response = requests.put(url=request_url, headers=headers, data=data)
+                else:
+                    response = requests.put(url=request_url, headers=headers, data=json.dumps(data))
+            else:
+                raise ValueError("Verb must be one of Get, Delete, Post or Put")
+
+            logging.debug(verb + " - Response code:" + str(response.status_code))
+        except ConnectionError:
+            logging.error(verb + " - Connection Error:" + request_url)
+            self.status_message = "Connection Error"
+            self.status_code = -1
+            logging.exception(self.status_message, request_url)
+        except TimeoutError:
+            logging.error(verb + " - Timeout Error:" + request_url)
+            self.status_message = "Timeout Error"
+            self.status_code = -1
+            logging.exception(self.status_message, request_url)
+        except requests.exceptions.RequestException:
+            logging.error(verb + " - Request Error:" + request_url)
+            self.status_message = "Request Error"
+            self.status_code = -1
+            logging.exception(self.status_message, request_url)
+
+        if response is not None:
+            self.status_code = response.status_code
+            self.raw = response.text
+            if response.text.startswith("{"):
+                self.result = json.loads(response.text)
+            else:
+                self.result = response.text
+
+        if self.status_code not in {HTTP_OK, HTTP_NO_RESPONSE}:
+            logging.error(verb + ' - Error response:' + response.text)
+            self.status_message = response.text
+            return False
+        else:
+            self.status_message = None
+            return True
+
     def delete_request(self, request_url: str, data=None):
         """
         Supports all delete calls for API Endpoints.
@@ -44,51 +132,10 @@ class SprinklrClient:
         Returns:
         boolean: True if call successful, False if not. On error/failure, status_message should contain information.
         """
+        return self._make_api_request("DELETE", request_url, data)
+        
 
-        response = None
-
-        headers = {'key': self.key,
-                   'Authorization': "Bearer " + self.access_token,
-                   'Content-Type': 'application/json',
-                   'cache-control': 'no-cache'}
-
-        logging.info("delete_reqeuest - URL:" + request_url)
-        logging.debug("Headers:" + str(headers))
-        logging.debug("Data Being Posted:" + str(data))
-
-        try:
-            response = requests.delete(
-                url=request_url, headers=headers, data=json.dumps(data))
-        except ConnectionError:
-            logging.error("delete_request - Connection Error:" + request_url)
-            self.status_message = "Connection Error"
-            self.status_code = -1
-            logging.exception(self.status_message, request_url)
-        except TimeoutError:
-            logging.error("delete_request - Timeout Error:" + request_url)
-            self.status_message = "Timeout Error"
-            self.status_code = -1
-            logging.exception(self.status_message, request_url)
-        except requests.exceptions.RequestException:
-            logging.error("delete_request - Request Error:" + request_url)
-            self.status_message = "Request Error"
-            self.status_code = -1
-            logging.exception(self.status_message, request_url)
-
-        if response is not None:
-            self.status_code = response.status_code
-            self.raw = response.text
-            if response.text.startswith("{"):
-                self.result = json.loads(response.text)
-            else:
-                self.result = response.text
-
-        if (self.status_code != HTTP_OK) or (self.status_code != HTTP_NO_RESPONSE):
-            logging.error('delete_request:' + response.text)
-
-        return (self.status_code != HTTP_OK) or (self.status_code != HTTP_NO_RESPONSE)
-
-    def get_request(self, request_url, returns_json=False):
+    def get_request(self, request_url: str, returns_json=True):
         """ Supports all GET calls for API Endpoints.
 
         Args:
@@ -98,50 +145,8 @@ class SprinklrClient:
         Returns:
             boolean: True if call successful, False if not. On error/failure, status_message should contain information.
         """
+        return self._make_api_request("GET", request_url)
 
-        headers = {'key': self.key,
-                   'Authorization': "Bearer " + self.access_token}
-
-        if returns_json:
-            headers['accept'] = 'application/json'
-
-        logging.info("get_reqeuest - URL:" + request_url)
-        logging.debug("Headers:" + str(headers))
-
-        response = None
-
-        try:
-            response = requests.get(url=request_url, headers=headers)
-            logging.debug("get_request - Response code:" + str(response.status_code))
-        except ConnectionError:
-            logging.error("get_request - Connection Error:" + request_url)
-            self.status_message = "Connection Error"
-            self.status_code = -1
-            logging.exception(self.status_message, request_url)
-        except TimeoutError:
-            logging.error("get_request - Timeout Error:" + request_url)
-            self.status_message = "Timeout Error"
-            self.status_code = -1
-            logging.exception(self.status_message, request_url)
-        except requests.exceptions.RequestException:
-            logging.error("get_request - Request Error:" + request_url)
-            self.status_message = "Request Error"
-            self.status_code = -1
-            logging.exception(self.status_message, request_url)
-
-        if response is not None:
-            self.status_code = response.status_code
-            self.raw = response.text
-            if response.text.startswith("{"):
-                self.result = json.loads(response.text)
-            else:
-                self.result = response.text
-
-        if (self.status_code != HTTP_OK) or (self.status_code != HTTP_NO_RESPONSE):
-            logging.error('get_request:' + response.text)
-            self.status_message = response.text
-
-        return self.status_code == HTTP_OK
 
     def post_request(self, request_url: str, data: object, is_file=False):
         """
@@ -156,60 +161,8 @@ class SprinklrClient:
         boolean: True if call successful, False if not. On error/failure, status_message should contain information.
         """
 
-        response = None
-
-        headers = {'key': self.key,
-                   'Authorization': "Bearer " + self.access_token,
-                   'Content-Type': 'application/json',
-                   'cache-control': 'no-cache'}
-
-        logging.info("post_reqeuest - URL:" + request_url)
-        logging.debug("Headers:" + str(headers))
-        logging.debug("Data Being Posted:" + str(data))
-
-        try:
-            response = None
-            if is_file:
-                # Override Content type
-                headers["Content-Type"] = 'multipart/form-data'
-                logging.debug("Modififed Headers:" + str(headers))
-                response = requests.post(
-                    url=request_url, headers=headers, data=data)
-            elif type(data) is str:
-                response = requests.post(
-                    url=request_url, headers=headers, data=data)
-            else:
-                response = requests.post(
-                    url=request_url, headers=headers, data=json.dumps(data))
-        except ConnectionError:
-            logging.error("post_request - Connection Error:" + request_url)
-            self.status_message = "Connection Error"
-            self.status_code = -1
-            logging.exception(self.status_message, request_url)
-        except TimeoutError:
-            logging.error("post_request - Timeout Error:" + request_url)
-            self.status_message = "Timeout Error"
-            self.status_code = -1
-            logging.exception(self.status_message, request_url)
-        except requests.exceptions.RequestException:
-            logging.error("post_reqeust - Request Error:" + request_url)
-            self.status_message = "Request Error"
-            self.status_code = -1
-            logging.exception(self.status_message, request_url)
-
-        if response is not None:
-            self.status_code = response.status_code
-            self.raw = response.text
-            if response.text.startswith("{"):
-                self.result = json.loads(response.text)
-            else:
-                self.result = response.text
-
-        if (self.status_code != HTTP_OK) or (self.status_code != HTTP_NO_RESPONSE):
-            logging.error('post_request:' + response.text)
-
-        return (self.status_code == HTTP_OK) or (self.status_code == HTTP_NO_RESPONSE)
-
+        return self._make_api_request("POST", request_url, data = data, is_file=is_file)
+        
     def put_request(self, request_url: str, data=None):
         """
         Supports all put calls for API Endpoints.
@@ -221,54 +174,8 @@ class SprinklrClient:
         Returns:
         boolean: True if call successful, False if not. On error/failure, status_message should contain information.
         """
+        return self._make_api_request("PUT", request_url, data )
 
-        response = None
-
-        headers = {'key': self.key,
-                   'Authorization': "Bearer " + self.access_token,
-                   'Content-Type': 'application/json',
-                   'cache-control': 'no-cache'}
-
-        logging.info("put_reqeuest - URL:" + request_url)
-        logging.debug("Headers:" + str(headers))
-        logging.debug("Data Being Posted:" + str(data))
-
-        try:
-            response = None
-            if type(data) is str:
-                response = requests.put(
-                    url=request_url, headers=headers, data=data)
-            else:
-                response = requests.put(
-                    url=request_url, headers=headers, data=json.dumps(data))
-        except ConnectionError:
-            logging.error("Connection Error:" + request_url)
-            self.status_message = "put_request - Connection Error"
-            self.status_code = -1
-            logging.exception(self.status_message, request_url)
-        except TimeoutError:
-            logging.error("put_request - Timeout Error:" + request_url)
-            self.status_message = "Timeout Error"
-            self.status_code = -1
-            logging.exception(self.status_message, request_url)
-        except requests.exceptions.RequestException:
-            logging.error("put_request - Request Error:" + request_url)
-            self.status_message = "Request Error"
-            self.status_code = -1
-            logging.exception(self.status_message, request_url)
-
-        if response is not None:
-            self.status_code = response.status_code
-            self.raw = response.text
-            if response.text.startswith("{"):
-                self.result = json.loads(response.text)
-            else:
-                self.result = response.text
-
-        if self.status_code != (HTTP_OK or HTTP_NO_RESPONSE):
-            logging.error('put_request:' + response.text)
-
-        return (self.status_code == HTTP_OK) or (self.status_code == HTTP_NO_RESPONSE)
 
 # Account 2.0
     def fetch_account_by_channel_id(self, account_type, channel_id):
@@ -324,7 +231,8 @@ class SprinklrClient:
         Generates a URL that can be used to start the authorization process.
 
         Args:
-        redirect_uri (string): must be the same redirect_uri for the application. Where the redirect will send the temporary code
+        redirect_uri (string): *must be the same redirect_uri stored in the application definition on https://developer.sprinklr.com *. 
+        This is the URL where the temporary code will be sent as a URL parameter.
 
         Returns:
         string: URL used to initiate the authorization process
@@ -339,10 +247,10 @@ class SprinklrClient:
 
         Args:
         secret (string): API key created at developer.sprinklr.com
-        redirect_uri (string): must be the same redirect_uri for the application. Where the redirect will send the temporary code
+        redirect_uri (string): *must be the same redirect_uri stored in the application definition on https://developer.sprinklr.com *. 
         code: The temporary code created via the user authentication process, sent to the redirect_uri 
 
-        (API Key should already be set in the SprinklrClient object)        
+        Note: This assumes the API Key has been set in the SprinklrClient object
         Returns:JSON dictionary of Access Token, Refresh Token and expire time (in seconds)
         """
 
@@ -355,24 +263,47 @@ class SprinklrClient:
                        f'code={code}')
 
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-        response = requests.post(url=request_url, headers=headers)
 
-        self.raw = response
+        response = None      
+        verb = "POST (Authorize)"          
+        try:
+            response = requests.post(url=request_url, headers=headers)
+        except ConnectionError:
+            logging.error(verb + " - Connection Error:" + request_url)
+            self.status_message = "Connection Error"
+            self.status_code = -1
+            logging.exception(self.status_message, request_url)
+        except TimeoutError:
+            logging.error(verb + " - Timeout Error:" + request_url)
+            self.status_message = "Timeout Error"
+            self.status_code = -1
+            logging.exception(self.status_message, request_url)
+        except requests.exceptions.RequestException:
+            logging.error(verb + " - Request Error:" + request_url)
+            self.status_message = "Request Error"
+            self.status_code = -1
+            logging.exception(self.status_message, request_url)
 
-        self.status_code = response.status_code
+        if response is not None:
+            self.status_code = response.status_code
+            self.raw = response.text
+            if response.text.startswith("{"):
+                self.result = json.loads(response.text)
+            else:
+                self.result = response.text
 
-        if response.status_code == HTTP_OK:
+        if self.status_code not in {HTTP_OK, HTTP_NO_RESPONSE}:
+            logging.error(verb + ' - Error response:' + response.text)
+            self.status_message = response.text
+            return False
+        else:
+            self.status_message = None
             self.encoding = response.encoding
             j_result = json.loads(response.content)
             self.access_token = j_result["access_token"]
             self.token_type = j_result["token_type"]
             self.refresh_token = j_result["refresh_token"]
-        else:
-            logging.error("fetch_access_token - url:" + request_url)
-            if response.content is not None:
-                self.result = response.content
-
-        return response.status_code == HTTP_OK
+            return True
 
     def refresh_access_token(self, secret, redirect_uri, refresh_token):
         """
@@ -2290,3 +2221,4 @@ class SprinklrClient:
             If successful, SprinklrClient.result will contain a JSON object
         """        
         return self.fetch_resources('PARTNER_ACCOUNT_GROUPS')
+        
